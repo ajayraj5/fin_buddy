@@ -1,0 +1,111 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:CLT-{#####}",
+ "creation": "2025-02-17 09:35:16.122636",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "client_details_section",
+  "client_name",
+  "column_break_kufo",
+  "disabled",
+  "login_credentials_section",
+  "username",
+  "column_break_nlld",
+  "password",
+  "income_tax_details_section",
+  "last_income_tax_sync"
+ ],
+ "fields": [
+  {
+   "fieldname": "client_details_section",
+   "fieldtype": "Section Break",
+   "label": "Client Details"
+  },
+  {
+   "fieldname": "client_name",
+   "fieldtype": "Data",
+   "label": "Client Name"
+  },
+  {
+   "fieldname": "login_credentials_section",
+   "fieldtype": "Section Break",
+   "label": "Login Credentials"
+  },
+  {
+   "fieldname": "username",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Username",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_nlld",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "password",
+   "fieldtype": "Password",
+   "in_list_view": 1,
+   "label": "Password",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_kufo",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "disabled",
+   "fieldtype": "Check",
+   "label": "Disabled"
+  },
+  {
+   "fieldname": "income_tax_details_section",
+   "fieldtype": "Section Break",
+   "label": "Income Tax Details"
+  },
+  {
+   "fieldname": "last_income_tax_sync",
+   "fieldtype": "Datetime",
+   "label": "Last Income Tax Sync"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [
+  {
+   "link_doctype": "Response to Outstanding Demand",
+   "link_fieldname": "client"
+  },
+  {
+   "link_doctype": "E Proceeding",
+   "link_fieldname": "client"
+  }
+ ],
+ "modified": "2025-02-20 17:49:21.548700",
+ "modified_by": "Administrator",
+ "module": "Fin Buddy",
+ "name": "Client",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "client_name"
+}

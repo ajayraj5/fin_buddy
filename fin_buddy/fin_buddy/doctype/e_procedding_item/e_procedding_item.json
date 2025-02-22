@@ -1,0 +1,99 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-02-17 12:19:13.864744",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "notice_details_section",
+  "notice_communication_reference_id",
+  "notice_din",
+  "notice_section",
+  "notice_sent_date",
+  "column_break_regk",
+  "date_of_compliance",
+  "last_response_submitted",
+  "section_break_xqct",
+  "response_acknowledgement",
+  "column_break_zyzv",
+  "notice_letter_pdf"
+ ],
+ "fields": [
+  {
+   "fieldname": "notice_din",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Notice DIN"
+  },
+  {
+   "fieldname": "notice_sent_date",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Notice Sent Date"
+  },
+  {
+   "fieldname": "notice_section",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Notice Section"
+  },
+  {
+   "fieldname": "date_of_compliance",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Date Of Compliance"
+  },
+  {
+   "fieldname": "last_response_submitted",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Last Response Submitted"
+  },
+  {
+   "fieldname": "column_break_regk",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_xqct",
+   "fieldtype": "Section Break",
+   "label": "Documents"
+  },
+  {
+   "fieldname": "response_acknowledgement",
+   "fieldtype": "Attach",
+   "label": "Response Acknowledgement"
+  },
+  {
+   "fieldname": "notice_letter_pdf",
+   "fieldtype": "Attach",
+   "label": "Notice Letter PDF"
+  },
+  {
+   "fieldname": "column_break_zyzv",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "notice_details_section",
+   "fieldtype": "Section Break",
+   "label": "Notice Details"
+  },
+  {
+   "fieldname": "notice_communication_reference_id",
+   "fieldtype": "Data",
+   "label": "Notice/ Communication Reference ID"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-02-17 12:28:10.523274",
+ "modified_by": "Administrator",
+ "module": "Fin Buddy",
+ "name": "E Procedding Item",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

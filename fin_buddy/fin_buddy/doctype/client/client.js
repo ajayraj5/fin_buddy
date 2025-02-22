@@ -1,0 +1,35 @@
+// Copyright (c) 2025, AjayRaj Mahiwal and contributors
+// For license information, please see license.txt
+
+frappe.ui.form.on("Client", {
+    refresh(frm) {
+        // Show the "Login" button only if the document is not new
+        if (!frm.is_new() && !frm.doc.disabled) {
+            frm.add_custom_button(__("Login"), function() {
+                frappe.confirm(
+                    __("Are you sure you want to log ?"),  // Update the confirmation message
+                    function() {
+                        // Yes callback
+                        frappe.call({
+                            method: "fin_buddy.events.incometax_gov.login_into_portal",
+                            args: {
+                                client_name: frm.doc.name  // Pass client name to the method
+                            },
+                            freeze: true,
+                            freeze_message: __("Queuing selected clients for processing..."),
+                            callback: function(response) {
+                                // Handle the response if needed
+                                if (response.message) {
+                                    frappe.msgprint(__(response.message.message));
+                                }
+                            }
+                        });
+                    },
+                    function() {
+                        // No callback (Nothing to do if user clicks "No")
+                    }
+                );
+            });
+        }
+    },
+});

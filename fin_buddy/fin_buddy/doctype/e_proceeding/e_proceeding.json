@@ -1,0 +1,207 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:{proceeding_name}-{#####}",
+ "creation": "2025-02-17 16:50:27.315442",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "proceeding_name",
+  "financial_year",
+  "proceeding_status",
+  "column_break_zdsm",
+  "assessment_year",
+  "client",
+  "notice_details_section",
+  "notice_din",
+  "notice_communication_reference_id",
+  "column_break_regk",
+  "notice_section",
+  "section_break_idcp",
+  "response_due_date",
+  "date_of_compliance",
+  "column_break_fyhi",
+  "notice_sent_date",
+  "last_response_submitted",
+  "section_break_xqct",
+  "response_acknowledgement",
+  "column_break_zyzv",
+  "notice_letter_pdf",
+  "section_break_mqvi",
+  "replies",
+  "section_break_cafv",
+  "user_input",
+  "fetch_response_from_gpt",
+  "section_break_pagl",
+  "response_message"
+ ],
+ "fields": [
+  {
+   "fieldname": "proceeding_name",
+   "fieldtype": "Data",
+   "label": "Proceeding Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "proceeding_status",
+   "fieldtype": "Data",
+   "label": "Proceeding Status"
+  },
+  {
+   "fieldname": "column_break_zdsm",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "assessment_year",
+   "fieldtype": "Data",
+   "label": "Assessment Year"
+  },
+  {
+   "fieldname": "client",
+   "fieldtype": "Link",
+   "label": "Client",
+   "options": "Client"
+  },
+  {
+   "fieldname": "notice_details_section",
+   "fieldtype": "Section Break",
+   "label": "Notice Details"
+  },
+  {
+   "fieldname": "notice_communication_reference_id",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Document reference ID"
+  },
+  {
+   "description": "(Document Identification Number)",
+   "fieldname": "notice_din",
+   "fieldtype": "Data",
+   "label": "Notice/ Communication Reference ID"
+  },
+  {
+   "fieldname": "notice_section",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Notice Section"
+  },
+  {
+   "fieldname": "notice_sent_date",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Notice Sent Date"
+  },
+  {
+   "fieldname": "column_break_regk",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "date_of_compliance",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Date Of Compliance"
+  },
+  {
+   "fieldname": "last_response_submitted",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Last Response Submitted"
+  },
+  {
+   "fieldname": "section_break_xqct",
+   "fieldtype": "Section Break",
+   "label": "Documents"
+  },
+  {
+   "fieldname": "response_acknowledgement",
+   "fieldtype": "Attach",
+   "label": "Response Acknowledgement"
+  },
+  {
+   "fieldname": "column_break_zyzv",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "notice_letter_pdf",
+   "fieldtype": "Attach",
+   "label": "Notice Letter PDF"
+  },
+  {
+   "fieldname": "financial_year",
+   "fieldtype": "Data",
+   "label": "Financial Year"
+  },
+  {
+   "fieldname": "response_due_date",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Response Due Date"
+  },
+  {
+   "fieldname": "section_break_idcp",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_fyhi",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_mqvi",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "replies",
+   "fieldtype": "Table",
+   "label": "Replies",
+   "options": "E Proceeding Reply"
+  },
+  {
+   "fieldname": "section_break_cafv",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "response_message",
+   "fieldtype": "Text Editor",
+   "label": "Response Message"
+  },
+  {
+   "fieldname": "fetch_response_from_gpt",
+   "fieldtype": "Button",
+   "label": "Generate Response"
+  },
+  {
+   "fieldname": "section_break_pagl",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "user_input",
+   "fieldtype": "Small Text",
+   "label": "User Input"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-02-22 11:26:03.731385",
+ "modified_by": "Administrator",
+ "module": "Fin Buddy",
+ "name": "E Proceeding",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

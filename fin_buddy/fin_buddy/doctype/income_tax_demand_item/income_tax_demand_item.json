@@ -1,0 +1,59 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-02-17 10:55:54.143251",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "demand_reference_no",
+  "assessment_year",
+  "outstanding_amount",
+  "section_code",
+  "rectification_rights"
+ ],
+ "fields": [
+  {
+   "fieldname": "demand_reference_no",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "demand_reference_no"
+  },
+  {
+   "fieldname": "assessment_year",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "assessment_year"
+  },
+  {
+   "fieldname": "outstanding_amount",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "outstanding_amount"
+  },
+  {
+   "fieldname": "section_code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "section_code"
+  },
+  {
+   "fieldname": "rectification_rights",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "rectification_rights"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-02-17 10:57:23.123617",
+ "modified_by": "Administrator",
+ "module": "Fin Buddy",
+ "name": "Income Tax Demand Item",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

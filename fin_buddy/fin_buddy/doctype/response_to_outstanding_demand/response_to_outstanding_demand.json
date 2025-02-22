@@ -1,0 +1,110 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:{demand_reference_no}-{assessment_year}",
+ "creation": "2025-02-17 11:49:55.291038",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "demand_reference_no",
+  "outstanding_demand_amount",
+  "column_break_eohj",
+  "assessment_year",
+  "client",
+  "section_break_rwbh",
+  "section_code",
+  "rectification_rights",
+  "notice",
+  "column_break_sywi",
+  "mode_of_service",
+  "response_type"
+ ],
+ "fields": [
+  {
+   "fieldname": "demand_reference_no",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Demand Reference No",
+   "reqd": 1
+  },
+  {
+   "fieldname": "assessment_year",
+   "fieldtype": "Data",
+   "label": "Assessment Year"
+  },
+  {
+   "fieldname": "section_code",
+   "fieldtype": "Data",
+   "label": "Section Code"
+  },
+  {
+   "fieldname": "rectification_rights",
+   "fieldtype": "Data",
+   "label": "Rectification Rights"
+  },
+  {
+   "fieldname": "mode_of_service",
+   "fieldtype": "Data",
+   "label": "Mode of Service"
+  },
+  {
+   "fieldname": "response_type",
+   "fieldtype": "Data",
+   "label": "Response Type"
+  },
+  {
+   "fieldname": "outstanding_demand_amount",
+   "fieldtype": "Currency",
+   "label": "Outstanding Demand Amount"
+  },
+  {
+   "fieldname": "column_break_eohj",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_rwbh",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_sywi",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "client",
+   "fieldtype": "Link",
+   "label": "Client",
+   "options": "Client"
+  },
+  {
+   "fieldname": "notice",
+   "fieldtype": "Attach",
+   "label": "Notice"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-02-18 15:45:40.471952",
+ "modified_by": "Administrator",
+ "module": "Fin Buddy",
+ "name": "Response to Outstanding Demand",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "demand_reference_no"
+}
