@@ -8,14 +8,29 @@
  "field_order": [
   "client_details_section",
   "client_name",
+  "dob",
   "column_break_kufo",
   "disabled",
   "login_credentials_section",
   "username",
+  "income_tax_client",
   "column_break_nlld",
   "password",
+  "gst_login_credentials_section",
+  "gst_username",
+  "gst_client",
+  "column_break_gawf",
+  "gst_password",
+  "tds_login_credentials_section",
+  "tds_username",
+  "tds_client",
+  "column_break_uefd",
+  "tds_password",
   "income_tax_details_section",
-  "last_income_tax_sync"
+  "last_income_tax_sync",
+  "column_break_kbki",
+  "last_gst_sync",
+  "last_tds_sync"
  ],
  "fields": [
   {
@@ -31,15 +46,14 @@
   {
    "fieldname": "login_credentials_section",
    "fieldtype": "Section Break",
-   "label": "Login Credentials"
+   "label": "IncomeTax Login Credentials"
   },
   {
    "fieldname": "username",
    "fieldtype": "Data",
    "in_list_view": 1,
    "in_standard_filter": 1,
-   "label": "Username",
-   "reqd": 1
+   "label": "IncomeTax Username"
   },
   {
    "fieldname": "column_break_nlld",
@@ -49,8 +63,7 @@
    "fieldname": "password",
    "fieldtype": "Password",
    "in_list_view": 1,
-   "label": "Password",
-   "reqd": 1
+   "label": "Password"
   },
   {
    "fieldname": "column_break_kufo",
@@ -65,26 +78,123 @@
   {
    "fieldname": "income_tax_details_section",
    "fieldtype": "Section Break",
-   "label": "Income Tax Details"
+   "label": "Sync Details"
   },
   {
    "fieldname": "last_income_tax_sync",
    "fieldtype": "Datetime",
-   "label": "Last Income Tax Sync"
+   "label": "Last Income Tax Sync",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_kbki",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "last_gst_sync",
+   "fieldtype": "Datetime",
+   "label": "Last GST Sync",
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_tds_sync",
+   "fieldtype": "Datetime",
+   "label": "Last TDS Sync",
+   "read_only": 1
+  },
+  {
+   "fieldname": "gst_login_credentials_section",
+   "fieldtype": "Section Break",
+   "label": "GST Login Credentials"
+  },
+  {
+   "fieldname": "gst_username",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "GST Username"
+  },
+  {
+   "fieldname": "column_break_gawf",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "gst_password",
+   "fieldtype": "Password",
+   "in_list_view": 1,
+   "label": "Password"
+  },
+  {
+   "fieldname": "tds_login_credentials_section",
+   "fieldtype": "Section Break",
+   "label": "TDS Login Credentials"
+  },
+  {
+   "fieldname": "tds_username",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "TDS Username / TAN"
+  },
+  {
+   "fieldname": "column_break_uefd",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "tds_password",
+   "fieldtype": "Password",
+   "in_list_view": 1,
+   "label": "Password"
+  },
+  {
+   "description": "(DDMMYYYY)",
+   "fieldname": "dob",
+   "fieldtype": "Data",
+   "label": "DOB"
+  },
+  {
+   "default": "0",
+   "fieldname": "income_tax_client",
+   "fieldtype": "Check",
+   "label": "income_tax_client"
+  },
+  {
+   "default": "0",
+   "fieldname": "gst_client",
+   "fieldtype": "Check",
+   "label": "gst_client"
+  },
+  {
+   "default": "0",
+   "fieldname": "tds_client",
+   "fieldtype": "Check",
+   "label": "tds_client"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [
   {
+   "group": "IncomeTax",
    "link_doctype": "Response to Outstanding Demand",
    "link_fieldname": "client"
   },
   {
+   "group": "IncomeTax",
    "link_doctype": "E Proceeding",
+   "link_fieldname": "client"
+  },
+  {
+   "group": "GST",
+   "link_doctype": "GST Notice",
+   "link_fieldname": "client"
+  },
+  {
+   "group": "TDS",
+   "link_doctype": "TDS Notice",
    "link_fieldname": "client"
   }
  ],
- "modified": "2025-02-20 17:49:21.548700",
+ "modified": "2025-02-25 11:58:38.633656",
  "modified_by": "Administrator",
  "module": "Fin Buddy",
  "name": "Client",

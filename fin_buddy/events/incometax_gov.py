@@ -15,6 +15,19 @@ from selenium.webdriver.common.action_chains import ActionChains # type: ignore
 
 
 import frappe
+import openai  # type: ignore
+import PyPDF2  # type: ignore
+from PyPDF2.errors import PdfReadError
+import io
+from io import BytesIO
+from docx import Document
+from pathlib import Path
+import json
+from typing import Dict, Any, Optional
+
+# from fin_buddy.events.ContentMaking import ContentMasker
+from fin_buddy.events.DataMakingUtil import DataMaskingUtil
+
 
 def setup_chrome_options(user_download_dir):
     """Setup Chrome options with the specified download directory"""
@@ -50,10 +63,10 @@ def setup_chrome_options(user_download_dir):
     
     return options
 
-def setup_driver(username=None):
+def setup_driver(username=None, site_name="default_site"):
     user_download_dir = None
     if username:
-        user_download_dir = setup_user_directory(username)
+        user_download_dir = setup_user_directory(username, site_name)
     else:
         user_download_dir = setup_user_directory()
     
@@ -129,7 +142,7 @@ def check_response_to_outstanding_demand_page(driver, client_name):
     try:
         # Get the user directory for saving files
         client = frappe.get_doc("Client", client_name, fields=['username'])
-        download_dir = setup_user_directory(client.username)
+        download_dir = setup_user_directory(client.username, "incometax")
         
         # Click Pending Actions
         pending_actions = WebDriverWait(driver, 10).until(
@@ -238,7 +251,7 @@ def wait_for_download_using_latest(download_dir, before_download, before_time, t
 
 
 
-def create_or_update_demand(demand, client_name, file_path):
+def create_or_update_demand_old(demand, client_name, file_path):
     """Create or update demand document and attach downloaded notice"""
     try:
         if not demand:
@@ -344,6 +357,156 @@ def create_or_update_demand(demand, client_name, file_path):
 
 
 
+
+def process_pdf_file(file_path, client_name):
+    """
+    Process PDF file and handle encryption if necessary.
+    Returns file content and encryption status.
+    """
+    try:
+        with open(file_path, 'rb') as f:
+            reader = PyPDF2.PdfReader(f)
+            
+            if not reader.is_encrypted:
+                return f.read(), False, "File processed successfully"
+                
+            # Handle encrypted PDF
+            try:
+                client_doc = frappe.get_doc("Client", client_name)
+                password = f"{client_doc.username.lower()}{client_doc.dob}"
+                reader.decrypt(password)
+                
+                writer = PyPDF2.PdfWriter()
+                for page in reader.pages:
+                    writer.add_page(page)
+                
+                output_buffer = BytesIO()
+                writer.write(output_buffer)
+                return output_buffer.getvalue(), True, "File decrypted successfully"
+                
+            except (PdfReadError, ValueError) as e:
+                f.seek(0)
+                return f.read(), False, f"Unable to decrypt file: {str(e)}"
+                
+    except Exception as e:
+        raise Exception(f"Error processing PDF: {str(e)}")
+
+def handle_file_attachment(doc, file_path, file_content):
+    """
+    Handle file attachment for the document.
+    Manages existing attachments and creates new ones.
+    """
+    try:
+        # Remove existing attachments
+        existing_attachments = frappe.get_all("File", 
+            filters={
+                "attached_to_doctype": "Response to Outstanding Demand",
+                "attached_to_name": doc.name,
+                "attached_to_field": "notice"
+            }
+        )
+        
+        for attachment in existing_attachments:
+            frappe.delete_doc('File', attachment.name)
+        
+        # Create new attachment
+        filename = os.path.basename(file_path)
+        attachment = frappe.get_doc({
+            'doctype': 'File',
+            'file_name': filename,
+            'content': file_content,
+            'attached_to_doctype': 'Response to Outstanding Demand',
+            'attached_to_name': doc.name,
+            'attached_to_field': 'notice',
+            'is_private': 1
+        })
+        attachment.insert()
+        
+        return attachment.file_url
+        
+    except Exception as e:
+        raise Exception(f"Error handling attachment: {str(e)}")
+
+def create_demand_doc(demand, client_name):
+    """
+    Create new demand document with given data.
+    """
+    try:
+        amount_str = demand.get('outstanding_demand_amount', '0')
+        amount = int(re.sub(r"[^\d]", "", amount_str))
+        
+        doc = frappe.new_doc("Response to Outstanding Demand")
+        doc.demand_reference_no = demand.get('demand_reference_no', '')
+        doc.assessment_year = demand.get('assessment_year', '')
+        doc.outstanding_demand_amount = amount
+        doc.section_code = demand.get('section_code', '')
+        doc.rectification_rights = demand.get('rectification_rights', '')
+        doc.mode_of_service = demand.get('mode_of_service', '')
+        doc.response_type = demand.get('response_type', '')
+        doc.client = client_name
+        
+        doc.insert()
+        return doc
+        
+    except Exception as e:
+        raise Exception(f"Error creating demand document: {str(e)}")
+
+def create_or_update_demand(demand, client_name, file_path):
+    """
+    Main function to create or update demand document and handle attachments.
+    """
+    try:
+        if not demand:
+            print("Warning: Empty demand data provided")
+            return
+
+        # Check for existing document
+        response_docs = frappe.get_all("Response to Outstanding Demand", 
+            filters={
+                'demand_reference_no': demand.get('demand_reference_no', ''),
+                'assessment_year': demand.get('assessment_year', ''),
+                'client': client_name
+            }
+        )
+        
+        # Get or create document
+        if response_docs:
+            doc = frappe.get_doc("Response to Outstanding Demand", response_docs[0].name)
+        else:
+            doc = create_demand_doc(demand, client_name)
+        
+        # Handle file attachment if provided
+        if file_path and os.path.exists(file_path):
+            try:
+                # Process PDF file
+                file_content, was_decrypted, status = process_pdf_file(file_path, client_name)
+                print(status)
+                
+                if file_content:
+                    # Attach file and update document
+                    file_url = handle_file_attachment(doc, file_path, file_content)
+                    doc.notice = file_url
+                    doc.save()
+                    
+                    status_msg = f"File attached successfully"
+                    if was_decrypted:
+                        status_msg += " (decrypted)"
+                    print(status_msg)
+                    
+            except Exception as e:
+                print(f"Error handling file: {str(e)}")
+                frappe.log_error(str(e), "Demand File Processing")
+        
+        frappe.db.commit()
+        return doc.name
+        
+    except Exception as e:
+        error_msg = f"Error in demand processing: {str(e)}"
+        print(error_msg)
+        frappe.log_error(error_msg)
+        return None
+
+
 def extract_demand_details(soup):
     """Extract demand details from the page"""
     demands = []
@@ -415,19 +578,27 @@ def logout_user(driver):
         print(f"Logout failed: {str(e)}")
         return False
 
-def setup_user_directory(username="user_not_defined"):
-    """Create and return a user-specific download directory"""
+
+def setup_user_directory(username="user_not_defined", site_name="default_site"):
+    """Create and return a user-specific download directory under a site-specific path"""
+    
     # Create base downloads directory if it doesn't exist
     base_download_dir = os.path.join(os.getcwd(), "downloads")
     if not os.path.exists(base_download_dir):
         os.makedirs(base_download_dir)
     
-    # Create user-specific directory
-    user_dir = os.path.join(base_download_dir, username)
+    # Create site-specific directory
+    site_dir = os.path.join(base_download_dir, site_name)
+    if not os.path.exists(site_dir):
+        os.makedirs(site_dir)
+    
+    # Create user-specific directory under the site directory
+    user_dir = os.path.join(site_dir, username)
     if not os.path.exists(user_dir):
         os.makedirs(user_dir)
     
     return user_dir
+
 
 
 def handle_eproceedings_downloads(driver, username):
@@ -655,7 +826,7 @@ def handle_eproceedings_downloads(driver, username):
                             
                             # Get the user directory for saving files
                             client = frappe.get_doc("Client", username, fields=['username'])
-                            user_dir = setup_user_directory(client.username)
+                            user_dir = setup_user_directory(client.username, "incometax")
                             
                             for i, link in enumerate(hyperlink_elements):
                                 try:
@@ -693,7 +864,7 @@ def handle_eproceedings_downloads(driver, username):
                             
                             # Get the user directory for saving files
                             client = frappe.get_doc("Client", username, fields=['username'])
-                            user_dir = setup_user_directory(client.username)
+                            user_dir = setup_user_directory(client.username, "incometax")
                             
                             # Download the file
                             driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", download_button)
@@ -720,7 +891,7 @@ def handle_eproceedings_downloads(driver, username):
                             
                             # Get the user directory for saving files
                             client = frappe.get_doc("Client", username, fields=['username'])
-                            user_dir = setup_user_directory(client.username)
+                            user_dir = setup_user_directory(client.username, "incometax")
                             
                             # Download the file
                             driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", download_button)
@@ -730,7 +901,7 @@ def handle_eproceedings_downloads(driver, username):
                             
                             # Find the latest downloaded file
                             file_path = find_latest_download(user_dir)
-                            file_type = 'notice_letter_pdf'
+                            file_type = 'notice_letter'
                             
                         except Exception as e:
                             print(f"Error finding Download button: {str(e)}")
@@ -1202,7 +1373,7 @@ def login(client_name):
             return
         
         # Setup Selenium and process
-        driver = setup_driver(username)
+        driver = setup_driver(username, "incometax")
                 
         try:
             login_user(driver, username, password)
@@ -1266,7 +1437,7 @@ def process_single_client(client_name):
             return
         
         # Setup Selenium and process
-        driver = setup_driver(username)
+        driver = setup_driver(username, "incometax")
         
         start_time = time.time()
         
@@ -1349,7 +1520,7 @@ def process_submit_response(client_name, notice_id):
             return
         
         # Setup Selenium and process
-        driver = setup_driver(username)
+        driver = setup_driver(username, "incometax")
                 
         try:
             login_user(driver, username, password)
@@ -1718,11 +1889,7 @@ def handle_eproceedings_submit_response(driver, client_name, notice_id):
 
 
 
-# OPEN AI
-
-import openai 
-import PyPDF2 
-
+# OPEN AI and response generation
 
 @frappe.whitelist()
 def fetch_response_from_gpt(docname):
@@ -1732,23 +1899,75 @@ def fetch_response_from_gpt(docname):
 
     settings = frappe.get_single("FinBuddy Settings")
 
-    
+    notice_text = "no notice attached for now."
     # Ensure the attachment exists
-    if not settings.give_response_without_notice and not doc.notice_letter_pdf :
+    if not settings.give_response_without_notice and not doc.notice_letter :
         frappe.throw("No Notice PDF attachment found.")
-    else:
-        notice_text = "notice not present."
+    elif doc.notice_letter:
+            notice_text_doc = is_present_in_notice_text(doc.notice_letter)
+            if notice_text_doc:
+                notice_text = notice_text_doc.notice_text
+            else:
+                notice_text = extract_document_text(doc.notice_letter)
+                try:
+                    new_nt_doc = frappe.get_doc({
+                        "doctype": "Notice Text",
+                        # "doctype_name": "E Proceeding",
+                        # "doc_name": docname,
+                        "notice": doc.notice_letter,
+                        "notice_text": notice_text
+                    })
+
+                    new_nt_doc.insert()
+                    frappe.db.commit()
+                except Exception as e:
+                    frappe.log_error("Notice Text", f"Can't Create new notice text: \n {str(e)}")
+                    frappe.throw("Not able to create the Notice Text")
+
+                
     
+
 
     # User's query (you can get this from another field if needed)
     user_input = doc.user_input or "no user input."
+    today = datetime.today()
+    user_input += f"And Today date is {today.strftime('%d-%m-%Y')}. Other dates are notice dates like sent or other."
+    # user_input += f"\n Proceeding Name is {doc.proceeding_name} and Financial Year is {doc.financial_year} and Document Identification Number is {doc.notice_din} and Notice Section is {doc.notice_section} and Assessment Year is {doc.assessment_year} and Document reference ID is {doc.notice_communication_reference_id}. If some value is not present then ignore that values."
 
-    user_input += f"\n Proceeding Name is {doc.proceeding_name} and Financial Year is {doc.financial_year} and Document Identification Number is {doc.notice_din} and Notice Section is {doc.notice_section} and Assessment Year is {doc.assessment_year} and Document reference ID is {doc.notice_communication_reference_id}. If some value is not present then ignore that values."
-
-    
     print("pdf content", notice_text)
+    
+    other_documents_text = ""
+    for document in doc.other_documents:
+        notice_text_doc = is_present_in_notice_text(document.file)
+        if notice_text_doc:
+                document_text = notice_text_doc.notice_text
+        else:
+                document_text = extract_document_text(document.file)
+                try:
+                    new_nt_doc = frappe.get_doc({
+                        "doctype": "Notice Text",
+                        # "doctype_name": "E Proceeding",
+                        # "doc_name": docname,
+                        "notice": document.file,
+                        "notice_text": document_text
+                    })
+
+                    new_nt_doc.insert()
+                    frappe.db.commit()
+                except Exception as e:
+                    frappe.log_error("Notice Text", f"Can't Create new notice text: \n {str(e)}")
+                    frappe.throw("Not able to create the Notice Text")
+
+        print(f"\n\n {document_text} \n\n")
+        other_documents_text += f"Document Content: \n {document_text} \n"
+
+    if not other_documents_text:
+        other_documents_text = "no other documents attached."
+
+    mask_this_data = doc.mask_this_data or ""
+
     # Query OpenAI
-    response = query_openai(user_input, notice_text)
+    response = query_openai(user_input, notice_text, other_documents_text, mask_this_data)
 
     # Save response in the response_message field
     doc.response_message = response
@@ -1758,7 +1977,7 @@ def fetch_response_from_gpt(docname):
     return response  # Return the response to frontend (optional)
 
 
-def extract_pdf_text(pdf_path):
+def extract_pdf_text_old(pdf_path):
     """Extracts and cleans text from a given PDF file."""
     with open(pdf_path, 'rb') as file:
         reader = PyPDF2.PdfReader(file)
@@ -1774,7 +1993,84 @@ def extract_pdf_text(pdf_path):
     return ' '.join(text).strip()  # Join all pages into a single string
 
 
-def query_openai(user_input, notice_text):
+
+# def is_present_in_notice_text(doctype, docname, file_url):
+def is_present_in_notice_text(file_url):
+    existing_records = frappe.get_all("Notice Text",
+        # filters = {"doctype_name": doctype, "doc_name": docname, "notice": file_url},
+        filters = {"notice": file_url},
+        fields=["name"]
+    )
+
+    if existing_records:
+        return frappe.get_doc("Notice Text", existing_records[0]['name'])
+
+
+def extract_document_text(file_url):
+    """
+    Extracts and cleans text from documents stored in Frappe's File Doctype.
+    Supports PDF and DOCX formats.
+    """
+    # Fetch the file document from the database
+    file_doc = frappe.get_doc("File", {"file_url": file_url})
+    
+    if not file_doc:
+        raise FileNotFoundError(f"File not found in Frappe File Doctype: {file_url}")
+    
+    # Get the file content as bytes
+    file_content = file_doc.get_content()
+    
+    if not file_content:
+        raise ValueError(f"Failed to retrieve content for {file_url}")
+    
+    # Determine file type from extension
+    file_extension = Path(file_url).suffix.lower()
+    
+    try:
+        if file_extension == '.pdf':
+            return _extract_pdf_text(file_content)
+        elif file_extension in ['.docx', '.doc']:
+            return _extract_docx_text(file_content)
+        else:
+            raise ValueError(f"Unsupported file format: {file_extension}")
+    except Exception as e:
+        raise ValueError(f"Error processing {file_url}: {str(e)}")
+
+def _extract_pdf_text(file_content):
+    """Helper function to extract text from PDF content."""
+    text = []
+    pdf_reader = PyPDF2.PdfReader(io.BytesIO(file_content))
+    
+    for page in pdf_reader.pages:
+        page_text = page.extract_text()
+        if page_text:
+            cleaned_text = re.sub(r'\s+', ' ', page_text).strip()
+            text.append(cleaned_text)
+    
+    return ' '.join(text).strip()
+
+def _extract_docx_text(file_content):
+    """Helper function to extract text from DOCX content."""
+    text = []
+    doc = Document(io.BytesIO(file_content))
+    
+    # Extract text from paragraphs
+    for paragraph in doc.paragraphs:
+        if paragraph.text.strip():
+            cleaned_text = re.sub(r'\s+', ' ', paragraph.text).strip()
+            text.append(cleaned_text)
+    
+    # Extract text from tables
+    for table in doc.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                if cell.text.strip():
+                    cleaned_text = re.sub(r'\s+', ' ', cell.text).strip()
+                    text.append(cleaned_text)
+    
+    return ' '.join(text).strip()
+
+def query_openai_old(user_input, notice_text, other_documents_text):
     """Call OpenAI API to generate response."""
 
     # Get GPT model from settings
@@ -1783,17 +2079,19 @@ def query_openai(user_input, notice_text):
     max_token = settings.max_token or 500
     temperature = settings.temperature or 0.2
     frequency_penalty = settings.frequency_penalty or 0.3
+    system_role = settings.system_role or "give clear and structured response."
 
 
     openai.api_key = settings.get_password('openai_key') # key
+
+    combined_user_content = f"Notice File Content: {notice_text} \n Additional Documents: {other_documents_text} \n User Input: {user_input}"
 
 
     response = openai.ChatCompletion.create(
         model=model,
         messages=[
-            {"role": "system", "content": settings.system_role},
-            {"role": "user", "content": user_input},
-            {"role": "user", "content": notice_text}
+            {"role": "system", "content": system_role},
+            {"role": "user", "content": combined_user_content.strip()},
         ],
         max_tokens=max_token,
         temperature=temperature,
@@ -1801,3 +2099,321 @@ def query_openai(user_input, notice_text):
     )
 
     return response["choices"][0]["message"]["content"].strip()
+
+
+def query_openai_fine(user_input, notice_text, other_documents_text):
+    """Call OpenAI API to generate response with content masking."""
+    
+    # Initialize settings and masker
+    settings = frappe.get_single("FinBuddy Settings")
+    masker = ContentMasker()
+    
+    # Combine all text that needs to be masked
+    combined_user_content = f"Notice File Content: {notice_text} \n Additional Documents: {other_documents_text} \n User Input: {user_input}"
+    
+    # Mask the content
+    masked_content = masker.mask_content(combined_user_content)
+    
+    # Save mapping to FinBuddy DocType
+    mapping_data = {
+        'mapping': masker.mapping,
+        'reverse_mapping': masker.reverse_mapping,
+        'timestamp': str(datetime.now())
+    }
+    
+    settings.mapping_content = json.dumps(mapping_data)
+    settings.save()
+
+    # Get OpenAI settings
+    model = settings.model_name or "gpt-3.5-turbo"
+    max_token = settings.max_token or 500
+    temperature = settings.temperature or 0.2
+    frequency_penalty = settings.frequency_penalty or 0.3
+    system_role = settings.system_role or "give clear and structured response."
+    openai.api_key = settings.get_password('openai_key')
+
+    # Make API call with masked content
+    response = openai.ChatCompletion.create(
+        model=model,
+        messages=[
+            {"role": "system", "content": system_role},
+            {"role": "user", "content": masked_content.strip()},
+        ],
+        max_tokens=max_token,
+        temperature=temperature,
+        frequency_penalty=frequency_penalty
+    )
+
+    # Get the response
+    masked_response = response["choices"][0]["message"]["content"].strip()
+
+    # Load mapping from FinBuddy DocType
+    stored_mapping = json.loads(settings.mapping_content)
+    masker.mapping = stored_mapping['mapping']
+    masker.reverse_mapping = stored_mapping['reverse_mapping']
+
+    # Unmask the response
+    unmasked_response = masker.unmask_content(masked_response)
+
+    return unmasked_response
+
+
+
+
+
+# def query_openai(user_input: str, notice_text: str, other_documents_text: str) -> str:
+#     """Process content through OpenAI with masking/unmasking"""
+#     try:
+#         # Initialize
+#         settings = frappe.get_single("FinBuddy Settings")
+#         system_role = settings.system_role or "give me proper response."
+#         masker = ContentMasker()
+#         log_filepath = None
+        
+#         # Log initial inputs
+#         initial_content = {
+#             "user_input": user_input,
+#             "notice_text": notice_text,
+#             "other_documents_text": other_documents_text
+#         }
+#         log_filepath = write_to_content_file(initial_content, "1. INITIAL INPUT")
+        
+#         # Combine content
+#         combined_user_content = f"""Notice File Content: {notice_text} \nAdditional Documents :{other_documents_text} \nUser Input: {user_input}"""
+        
+#         write_to_content_file(combined_user_content, "2. COMBINED CONTENT", log_filepath)
+        
+#         # Mask content
+#         masked_content = masker.mask_content(combined_user_content)
+#         write_to_content_file({
+#             "masked_content": masked_content,
+#             "mapping": masker.mapping,
+#             "reverse_mapping": masker.reverse_mapping
+#         }, "3. MASKED CONTENT AND MAPPING", log_filepath)
+        
+#         # Save mapping to settings
+#         mapping_data = {
+#             'mapping': masker.mapping,
+#             'reverse_mapping': masker.reverse_mapping,
+#             'timestamp': str(datetime.now()),
+#             'content_log': masker.content_log
+#         }
+#         settings.mapping_content = json.dumps(mapping_data)
+#         settings.save()
+                
+#         # Get OpenAI settings and make request
+#         openai.api_key = settings.get_password('openai_key')
+#         openai_request = {
+#             "model": settings.model_name or "gpt-3.5-turbo",
+#             "max_tokens": settings.max_token or 500,
+#             "temperature": settings.temperature or 0.2,
+#             "frequency_penalty": settings.frequency_penalty or 0.3,
+#             "system_role": system_role
+#         }
+#         write_to_content_file(openai_request, "4. OPENAI REQUEST", log_filepath)
+        
+#         # Make API call
+#         response = openai.ChatCompletion.create(
+#             model=openai_request["model"],
+#             messages=[
+#                 {"role": "system", "content": system_role},
+#                 {"role": "user", "content": masked_content.strip()}
+#             ],
+#             max_tokens=openai_request["max_tokens"],
+#             temperature=openai_request["temperature"],
+#             frequency_penalty=openai_request["frequency_penalty"]
+#         )
+        
+#         # Process response
+#         masked_response = response["choices"][0]["message"]["content"].strip()
+#         write_to_content_file(masked_response, "5. MASKED RESPONSE FROM GPT", log_filepath)
+        
+#         # Unmask response
+#         stored_mapping = json.loads(settings.mapping_content)
+#         masker.mapping = stored_mapping['mapping']
+#         masker.reverse_mapping = stored_mapping['reverse_mapping']
+#         unmasked_response = masker.unmask_content(masked_response)
+        
+#         write_to_content_file(unmasked_response, "6. FINAL UNMASKED RESPONSE", log_filepath)
+        
+#         return unmasked_response
+        
+#     except Exception as e:
+#         error_msg = f"Error in query_openai: {str(e)}"
+#         if log_filepath:
+#             write_to_content_file({"error": error_msg}, "ERROR", log_filepath)
+#         frappe.log_error(error_msg)
+#         raise
+
+
+# def write_to_content_file(content, stage, filepath=None):
+#     """Write content to tracking file with stage information"""
+#     try:
+#         # Create logs directory if it doesn't exist
+#         log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'content_logs')
+#         os.makedirs(log_dir, exist_ok=True)
+        
+#         # Use provided filepath or create new one
+#         if not filepath:
+#             filename = f'content_tracking_{datetime.now().strftime("%Y%m%d_%H%M%S")}.txt'
+#             filepath = os.path.join(log_dir, filename)
+        
+#         with open(filepath, 'a', encoding='utf-8') as f:
+#             f.write(f"\n{'='*50}\n")
+#             f.write(f"STAGE: {stage}\n")
+#             f.write(f"TIMESTAMP: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+            
+#             if isinstance(content, dict):
+#                 f.write("CONTENT:\n")
+#                 f.write(json.dumps(content, indent=2, ensure_ascii=False))
+#             else:
+#                 f.write("CONTENT:\n")
+#                 f.write(str(content))
+            
+#             f.write(f"\n{'='*50}\n")
+        
+#         return filepath
+    
+#     except Exception as e:
+#         frappe.log_error(f"Error writing to content tracking file: {str(e)}")
+#         return ""
+
+
+
+
+
+def query_openai(user_input: str, notice_text: str, other_documents_text: str, mask_this_data: str) -> str:
+    """
+    Process content through OpenAI with masking/unmasking
+    
+    Args:
+        user_input: User's question or input
+        notice_text: Main notice content
+        other_documents_text: Additional document content
+        mask_this_data: Comma-separated text of items to mask (e.g., "Nav Bharat, Hisar, John Doe")
+    """
+    try:
+        # Initialize
+        settings = frappe.get_single("FinBuddy Settings")
+        system_role = settings.system_role or "give me proper response."
+        masker = DataMaskingUtil()
+        log_filepath = None
+        
+        # Log initial inputs
+        initial_content = {
+            "user_input": user_input,
+            "notice_text": notice_text,
+            "other_documents_text": other_documents_text,
+            "mask_this_data": mask_this_data
+        }
+        log_filepath = write_to_content_file(initial_content, "1. INITIAL INPUT")
+        
+        # Combine content
+        combined_user_content = f"""Notice File Content: {notice_text} 
+Additional Documents: {other_documents_text} 
+User Input: {user_input}"""
+        
+        write_to_content_file(combined_user_content, "2. COMBINED CONTENT", log_filepath)
+        
+        # Process mask_this_data into list
+        entities_to_mask = [
+            item.strip() 
+            for item in mask_this_data.split(',') 
+            if item.strip()  # Only include non-empty items
+        ]
+        
+        # First mask the explicitly provided entities
+        masked_content = masker.mask_text(combined_user_content, entities_to_mask)
+        
+        # Then mask other sensitive data (PAN, dates, etc.)
+        masked_content = masker.mask_text(masked_content)  # Second pass without entities list
+        
+        write_to_content_file({
+            "masked_content": masked_content,
+            "mapping": masker.mapping,
+            "entities_masked": entities_to_mask
+        }, "3. MASKED CONTENT AND MAPPING", log_filepath)
+        
+        # Save mapping to settings
+        mapping_data = {
+            'mapping': masker.mapping,
+            'timestamp': str(datetime.now()),
+            'entities_masked': entities_to_mask
+        }
+        settings.mapping_content = json.dumps(mapping_data)
+        settings.save()
+        
+        # Get OpenAI settings and make request
+        openai.api_key = settings.get_password('openai_key')
+        openai_request = {
+            "model": settings.model_name or "gpt-3.5-turbo",
+            "max_tokens": settings.max_token or 500,
+            "temperature": settings.temperature or 0.2,
+            "frequency_penalty": settings.frequency_penalty or 0.3,
+            "system_role": system_role
+        }
+        write_to_content_file(openai_request, "4. OPENAI REQUEST", log_filepath)
+        
+        # Make API call
+        response = openai.ChatCompletion.create(
+            model=openai_request["model"],
+            messages=[
+                {"role": "system", "content": system_role},
+                {"role": "user", "content": masked_content.strip()}
+            ],
+            max_tokens=openai_request["max_tokens"],
+            temperature=openai_request["temperature"],
+            frequency_penalty=openai_request["frequency_penalty"]
+        )
+        
+        # Process response
+        masked_response = response["choices"][0]["message"]["content"].strip()
+        write_to_content_file(masked_response, "5. MASKED RESPONSE FROM GPT", log_filepath)
+        
+        # Unmask response
+        stored_mapping = json.loads(settings.mapping_content)
+        masker.mapping = stored_mapping['mapping']
+        unmasked_response = masker.restore_text(masked_response)
+        
+        write_to_content_file(unmasked_response, "6. FINAL UNMASKED RESPONSE", log_filepath)
+        
+        return unmasked_response
+        
+    except Exception as e:
+        error_msg = f"Error in query_openai: {str(e)}"
+        if log_filepath:
+            write_to_content_file({"error": error_msg}, "ERROR", log_filepath)
+        frappe.log_error(error_msg)
+        raise
+
+def write_to_content_file(content: Any, stage: str, filepath: Optional[str] = None) -> str:
+    """Write content to tracking file with stage information"""
+    try:
+        # Create logs directory if it doesn't exist
+        log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'content_logs')
+        os.makedirs(log_dir, exist_ok=True)
+        
+        # Use provided filepath or create new one
+        if not filepath:
+            filename = f'content_tracking_{datetime.now().strftime("%Y%m%d_%H%M%S")}.txt'
+            filepath = os.path.join(log_dir, filename)
+        
+        with open(filepath, 'a', encoding='utf-8') as f:
+            f.write(f"\n{'='*50}\n")
+            f.write(f"STAGE: {stage}\n")
+            f.write(f"TIMESTAMP: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+            
+            if isinstance(content, dict):
+                f.write("CONTENT:\n")
+                f.write(json.dumps(content, indent=2, ensure_ascii=False))
+            else:
+                f.write("CONTENT:\n")
+                f.write(str(content))
+            
+            f.write(f"\n{'='*50}\n")
+        
+        return filepath
+        
+    except Exception as e:
+        frappe.log_error(f"Error writing to content tracking file: {str(e)}")
+        return ""

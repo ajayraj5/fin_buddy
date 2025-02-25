@@ -26,11 +26,13 @@
   "section_break_xqct",
   "response_acknowledgement",
   "column_break_zyzv",
-  "notice_letter_pdf",
+  "notice_letter",
   "section_break_mqvi",
   "replies",
   "section_break_cafv",
   "user_input",
+  "other_documents",
+  "mask_this_data",
   "fetch_response_from_gpt",
   "section_break_pagl",
   "response_message"
@@ -122,11 +124,6 @@
    "fieldtype": "Column Break"
   },
   {
-   "fieldname": "notice_letter_pdf",
-   "fieldtype": "Attach",
-   "label": "Notice Letter PDF"
-  },
-  {
    "fieldname": "financial_year",
    "fieldtype": "Data",
    "label": "Financial Year"
@@ -177,11 +174,28 @@
    "fieldname": "user_input",
    "fieldtype": "Small Text",
    "label": "User Input"
+  },
+  {
+   "description": "(include only .pdf, .doc, .docx)",
+   "fieldname": "other_documents",
+   "fieldtype": "Table",
+   "label": "Other Documents",
+   "options": "Attachment Item"
+  },
+  {
+   "fieldname": "notice_letter",
+   "fieldtype": "Attach",
+   "label": "Notice Letter"
+  },
+  {
+   "fieldname": "mask_this_data",
+   "fieldtype": "Small Text",
+   "label": "Mask This Data"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-02-22 11:26:03.731385",
+ "modified": "2025-02-24 17:33:44.668901",
  "modified_by": "Administrator",
  "module": "Fin Buddy",
  "name": "E Proceeding",

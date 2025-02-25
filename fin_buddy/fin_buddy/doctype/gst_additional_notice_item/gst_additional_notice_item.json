@@ -1,0 +1,52 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-02-22 17:53:51.776344",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "type_of_notice",
+  "description",
+  "ref_id",
+  "date_of_issuance"
+ ],
+ "fields": [
+  {
+   "fieldname": "description",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Description"
+  },
+  {
+   "fieldname": "type_of_notice",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Type of Notice"
+  },
+  {
+   "fieldname": "ref_id",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Ref ID"
+  },
+  {
+   "fieldname": "date_of_issuance",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Date of Issuance"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-02-22 19:44:55.551985",
+ "modified_by": "Administrator",
+ "module": "Fin Buddy",
+ "name": "GST Additional Notice Item",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

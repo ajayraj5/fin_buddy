@@ -1,0 +1,58 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:GST-{#####}",
+ "creation": "2025-02-22 17:48:57.658532",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "client",
+  "notices",
+  "additional_notices"
+ ],
+ "fields": [
+  {
+   "fieldname": "client",
+   "fieldtype": "Link",
+   "label": "Client",
+   "options": "Client"
+  },
+  {
+   "fieldname": "notices",
+   "fieldtype": "Table",
+   "label": "Notices",
+   "options": "GST Notice Item"
+  },
+  {
+   "fieldname": "additional_notices",
+   "fieldtype": "Table",
+   "label": "Additional Notices",
+   "options": "GST Additional Notice Item"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-02-23 13:27:53.562249",
+ "modified_by": "Administrator",
+ "module": "Fin Buddy",
+ "name": "GST Notice",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

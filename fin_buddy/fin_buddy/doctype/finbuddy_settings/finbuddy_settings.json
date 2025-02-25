@@ -14,7 +14,8 @@
   "column_break_mkit",
   "frequency_penalty",
   "e_proceeding_section",
-  "give_response_without_notice"
+  "give_response_without_notice",
+  "mapping_content"
  ],
  "fields": [
   {
@@ -83,12 +84,17 @@
    "fieldname": "give_response_without_notice",
    "fieldtype": "Check",
    "label": "Give Response Without Notice"
+  },
+  {
+   "fieldname": "mapping_content",
+   "fieldtype": "Long Text",
+   "label": "Mapping Content"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-02-20 17:11:59.131452",
+ "modified": "2025-02-23 18:38:13.812485",
  "modified_by": "Administrator",
  "module": "Fin Buddy",
  "name": "FinBuddy Settings",

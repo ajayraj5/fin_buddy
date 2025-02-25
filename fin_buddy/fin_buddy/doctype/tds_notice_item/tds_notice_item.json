@@ -1,0 +1,47 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-02-22 17:47:06.752825",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "financial_year",
+  "manual_demand",
+  "processed_demand"
+ ],
+ "fields": [
+  {
+   "fieldname": "financial_year",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Financial Year"
+  },
+  {
+   "fieldname": "manual_demand",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Manual Demand",
+   "non_negative": 1
+  },
+  {
+   "fieldname": "processed_demand",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Processed Demand",
+   "non_negative": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-02-23 12:49:04.887126",
+ "modified_by": "Administrator",
+ "module": "Fin Buddy",
+ "name": "TDS Notice Item",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
