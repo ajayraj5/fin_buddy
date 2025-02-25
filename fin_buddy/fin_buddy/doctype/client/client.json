@@ -13,17 +13,14 @@
   "disabled",
   "login_credentials_section",
   "username",
-  "income_tax_client",
   "column_break_nlld",
   "password",
   "gst_login_credentials_section",
   "gst_username",
-  "gst_client",
   "column_break_gawf",
   "gst_password",
   "tds_login_credentials_section",
   "tds_username",
-  "tds_client",
   "column_break_uefd",
   "tds_password",
   "income_tax_details_section",
@@ -151,24 +148,6 @@
    "fieldname": "dob",
    "fieldtype": "Data",
    "label": "DOB"
-  },
-  {
-   "default": "0",
-   "fieldname": "income_tax_client",
-   "fieldtype": "Check",
-   "label": "income_tax_client"
-  },
-  {
-   "default": "0",
-   "fieldname": "gst_client",
-   "fieldtype": "Check",
-   "label": "gst_client"
-  },
-  {
-   "default": "0",
-   "fieldname": "tds_client",
-   "fieldtype": "Check",
-   "label": "tds_client"
   }
  ],
  "index_web_pages_for_search": 1,
@@ -194,7 +173,7 @@
    "link_fieldname": "client"
   }
  ],
- "modified": "2025-02-25 11:58:38.633656",
+ "modified": "2025-02-25 12:19:05.086763",
  "modified_by": "Administrator",
  "module": "Fin Buddy",
  "name": "Client",
