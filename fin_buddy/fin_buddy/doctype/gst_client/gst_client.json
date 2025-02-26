@@ -1,0 +1,101 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:GST-CLT-{#####}",
+ "creation": "2025-02-25 14:08:06.451098",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "client_details_section",
+  "client_name",
+  "column_break_kufo",
+  "disabled",
+  "gst_login_credentials_section",
+  "gst_username",
+  "column_break_gawf",
+  "gst_password",
+  "income_tax_details_section",
+  "last_gst_sync"
+ ],
+ "fields": [
+  {
+   "fieldname": "client_details_section",
+   "fieldtype": "Section Break",
+   "label": "Client Details"
+  },
+  {
+   "fieldname": "client_name",
+   "fieldtype": "Data",
+   "label": "Client Name"
+  },
+  {
+   "fieldname": "column_break_kufo",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "disabled",
+   "fieldtype": "Check",
+   "label": "Disabled"
+  },
+  {
+   "fieldname": "gst_login_credentials_section",
+   "fieldtype": "Section Break",
+   "label": "GST Login Credentials"
+  },
+  {
+   "fieldname": "gst_username",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "GST Username"
+  },
+  {
+   "fieldname": "column_break_gawf",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "gst_password",
+   "fieldtype": "Password",
+   "in_list_view": 1,
+   "label": "Password"
+  },
+  {
+   "fieldname": "income_tax_details_section",
+   "fieldtype": "Section Break",
+   "label": "Sync Details"
+  },
+  {
+   "fieldname": "last_gst_sync",
+   "fieldtype": "Datetime",
+   "label": "Last GST Sync",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-02-25 14:08:55.286723",
+ "modified_by": "Administrator",
+ "module": "Fin Buddy",
+ "name": "GST Client",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "client_name"
+}

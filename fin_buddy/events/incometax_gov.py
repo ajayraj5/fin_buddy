@@ -27,7 +27,7 @@ from typing import Dict, Any, Optional
 
 # from fin_buddy.events.ContentMaking import ContentMasker
 from fin_buddy.events.DataMakingUtil import DataMaskingUtil
-
+import fin_buddy.utils.dates as MakeDateValid
 
 def setup_chrome_options(user_download_dir):
     """Setup Chrome options with the specified download directory"""
@@ -689,13 +689,18 @@ def handle_eproceedings_downloads(driver, username):
             if issued_date_elem:
                 issued_date = issued_date_elem.find_next('span', class_='subtitle2')
                 if issued_date:
-                    details['notice_sent_date'] = issued_date.text.strip()
+                    notice_sent_date_value = issued_date.text.strip()
+                    converted_date = MakeDateValid.get_frappe_date(notice_sent_date_value)
+                    details['notice_sent_date'] = converted_date
+
                     
             due_date_elem = container_element.select_one("span:-soup-contains('Response Due Date :')")
             if due_date_elem:
                 due_date = due_date_elem.find_next('span', class_='subtitle2')
                 if due_date:
-                    details['response_due_date'] = due_date.text.strip()
+                    response_due_date_value = due_date.text.strip()
+                    converted_date = MakeDateValid.get_frappe_date(response_due_date_value)
+                    details['response_due_date'] = converted_date
 
             
             print("Container Details:")
@@ -1638,13 +1643,17 @@ def handle_eproceedings_submit_response(driver, client_name, notice_id):
             if issued_date_elem:
                 issued_date = issued_date_elem.find_next('span', class_='subtitle2')
                 if issued_date:
-                    details['notice_sent_date'] = issued_date.text.strip()
+                    notice_sent_date_value = issued_date.text.strip()
+                    converted_date = MakeDateValid.get_frappe_date(notice_sent_date_value)
+                    details['notice_sent_date'] = converted_date
                     
             due_date_elem = container_element.select_one("span:-soup-contains('Response Due Date :')")
             if due_date_elem:
                 due_date = due_date_elem.find_next('span', class_='subtitle2')
                 if due_date:
-                    details['response_due_date'] = due_date.text.strip()
+                    response_due_date_value = due_date.text.strip()
+                    converted_date = MakeDateValid.get_frappe_date(response_due_date_value)
+                    details['response_due_date'] = converted_date
 
 
             return details

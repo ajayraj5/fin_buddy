@@ -15,6 +15,7 @@ from selenium.common.exceptions import TimeoutException # type: ignore
 
 
 import frappe
+import fin_buddy.utils.dates as MakeDateValid
 
 
 def setup_user_directory(username="user_not_defined", site_name="default_site"):
@@ -355,6 +356,12 @@ def extract_notice_data(driver, user_download_dir, client_name):
                     'due_date': cols[5].text,
                     'amount': cols[6].text
                 }
+
+                converted_date = MakeDateValid.get_frappe_date(notice_data['issue_date'])
+                notice_data['issue_date'] = converted_date
+
+                converted_date = MakeDateValid.get_frappe_date(notice_data['due_date'])
+                notice_data['due_date'] = converted_date
                 
                 # Handle document download
                 download_btn = cols[7].find_element(By.CSS_SELECTOR, "a.btn-download")
@@ -440,10 +447,10 @@ def create_and_attach_file_in_gst_notices_table(gst_doc, notice_data, file_path)
             "content": content
         })
         
-        file_doc.insert()
+        new_doc = file_doc.insert()
         
         # Update the reply with the file URL
-        child_notice_doc.file = file_doc.file_url
+        child_notice_doc.file = new_doc.file_url
         child_notice_doc.save()
         frappe.db.commit()
         
@@ -578,12 +585,14 @@ def extract_gst_additional_notice_data(driver):
             description = cols[1].find_element(By.TAG_NAME, "span").text
             ref_id = cols[2].find_element(By.TAG_NAME, "span").text
             date = cols[3].find_element(By.TAG_NAME, "span").text
+
+            converted_date = MakeDateValid.get_frappe_date(date)
             
             notices_data.append({
                 'type_of_notice': notice_type,
                 'description': description,
                 'ref_id': ref_id,
-                'date_of_issuance': date
+                'date_of_issuance': converted_date
             })
             
         # Convert to pandas DataFrame

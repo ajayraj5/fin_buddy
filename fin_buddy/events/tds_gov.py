@@ -106,6 +106,548 @@ def login_user(driver, username, password):
         print(f"Login failed for user {username}: {str(e)}")
         return False
 
+
+
+
+
+
+def process_financial_years_only_click(driver, tds_doc=None):
+    """Process all financial years (except Prior Years) from the dashboard"""
+    wait = WebDriverWait(driver, 20)
+    all_notices_data = []
+    
+    try:
+        # First, collect all the year texts we want to process
+        financial_year_links = driver.find_elements(By.XPATH, "//table[@id='fyAmtList']/tbody/tr/td[@aria-describedby='fyAmtList_finYr']")
+        years_to_process = [link.text for link in financial_year_links if "Prior Years" not in link.text]
+        
+        print("Years to process:", years_to_process)
+        
+        # Process each year by finding the element fresh each time
+        for year_text in years_to_process:
+            print("")
+            print(f"Processing financial year: {year_text}")
+            
+            # Find the element again each time to avoid stale element issues
+            year_element = driver.find_element(By.XPATH, f"//table[@id='fyAmtList']/tbody/tr/td[@aria-describedby='fyAmtList_finYr' and text()='{year_text}']")
+            
+            # Click on the year
+            driver.execute_script("arguments[0].click();", year_element)
+            time.sleep(3)
+            
+            # Process data for this year here
+            # ... your processing code ...
+            
+            # Go back
+            driver.back()
+            time.sleep(10)  # Allow page to fully reload
+        
+        # Create TDS notices
+        if all_notices_data:
+            print("all notice data", all_notices_data)
+            # create_tds_notices_table(tds_doc, all_notices_data)
+        
+    except Exception as e:
+        print(f"Error processing financial years: {str(e)}")
+        import traceback
+        traceback.print_exc()  # This will print the full stack trace for better debugging
+
+
+def process_quarters_old(driver, tds_doc, year_text):
+    """
+    Process all quarters for a specific financial year and return HTML tables
+    
+    Args:
+        driver: Selenium WebDriver instance
+        year_text: The financial year text (e.g., "2023-24")
+    
+    Returns:
+        Dictionary with quarter information and HTML tables
+    """
+    wait = WebDriverWait(driver, 10)
+    quarters_data = []
+    new_doc = frappe.get_doc({
+        "doctype":"TDS Summary Details",
+        "fy": year_text,
+        "tds_notice": tds_doc.name,
+    })
+    
+    try:
+        # Wait for the quarters table to be visible
+        wait.until(EC.visibility_of_element_located((By.ID, "demandsumFY1")))
+        
+        # Find all quarter links in the first column
+        quarter_links = driver.find_elements(By.XPATH, "//table[@id='demandsumFY1']/tbody/tr/td[1]/a")
+        
+        print(f"Found {len(quarter_links)} quarters for {year_text}")
+        
+        # Collect quarter texts for processing
+        quarters_to_process = [link.find_element(By.XPATH, ".//span").text for link in quarter_links]
+        
+        # Process each quarter
+        for quarter_text in quarters_to_process:
+            print(f"  Processing quarter: {quarter_text}")
+            
+            # Find the quarter element fresh to avoid stale element issues
+            quarter_element = driver.find_element(By.XPATH, f"//table[@id='demandsumFY1']/tbody/tr/td[1]/a/span[text()='{quarter_text}']/parent::a")
+            
+            # Click on the quarter
+            driver.execute_script("arguments[0].click();", quarter_element)
+            time.sleep(3)
+            
+            # Check if the table exists
+            tables = driver.find_elements(By.XPATH, "//table[@class='userList w750']")
+            
+            if tables:
+                # Get the HTML of the table
+                table_html = tables[0].get_attribute('outerHTML')
+                
+                # Store the data
+                quarter_data = {
+                    'quarter': quarter_text,
+                    'table_html': table_html
+                }
+                
+                # quarters_data.append(quarter_data)
+                new_doc.append("items",{
+                    **quarter_data
+                })
+                print(f"    Captured table HTML for {year_text} - {quarter_text}")
+            else:
+                print(f"    No table found for {year_text} - {quarter_text}")
+            
+            # Go back to the year page
+            driver.back()
+            time.sleep(5)  # Allow page to fully reload
+        
+        return quarters_data
+        
+    except Exception as e:
+        print(f"Error processing quarters for {year_text}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return quarters_data
+
+
+def process_quarters_old_best(driver, tds_doc, year_text):
+    """
+    Process all quarters for a specific financial year and return data
+    
+    Args:
+        driver: Selenium WebDriver instance
+        year_text: The financial year text (e.g., "2023-24")
+    
+    Returns:
+        Dictionary with quarter information, table HTML, and extracted data
+    """
+    wait = WebDriverWait(driver, 10)
+    # quarters_data = []
+    new_doc = frappe.get_doc({
+        "doctype":"TDS Summary Details",
+        "fy": year_text,
+        "tds_notice": tds_doc.name,
+    })
+    
+    try:
+        # Wait for the quarters table to be visible
+        wait.until(EC.visibility_of_element_located((By.ID, "demandsumFY1")))
+        
+        # Find all quarter links in the first column
+        quarter_links = driver.find_elements(By.XPATH, "//table[@id='demandsumFY1']/tbody/tr/td[1]/a")
+        
+        print(f"Found {len(quarter_links)} quarters for {year_text}")
+        
+        # Process each quarter by getting row data first
+        for i, quarter_link in enumerate(quarter_links):
+            # Get the quarter text
+            quarter_text = quarter_link.find_element(By.XPATH, ".//span").text
+            print(f"  Processing quarter: {quarter_text}")
+            
+            # Get the form type and net payable from the same row
+            # The form type is in the second column of the same row
+            # row = quarter_link.find_element(By.XPATH, "./../../..")  # Go up to the TR element
+            # form_type = row.find_element(By.XPATH, "./td[2]/span").text
+            # net_payable = row.find_element(By.XPATH, "./td[3]/span").text
+            
+            # print(f"    Form Type: {form_type}, Net Payable: {net_payable}")
+            
+            # Find the quarter element fresh to avoid stale element issues
+            quarter_element = driver.find_element(By.XPATH, f"//table[@id='demandsumFY1']/tbody/tr/td[1]/a/span[text()='{quarter_text}']/parent::a")
+            
+            # Click on the quarter
+            driver.execute_script("arguments[0].click();", quarter_element)
+            time.sleep(3)
+            
+            # Check if the table exists
+            tables = driver.find_elements(By.XPATH, "//table[@class='userList w750']")
+            
+            if tables:
+                # Get the HTML of the table
+                table_html = tables[0].get_attribute('outerHTML')
+                
+                # Store the data
+                quarter_data = {
+                    'quarter': quarter_text,
+                    'form_type': "",
+                    'net_payable': "",
+                    'table_html': table_html
+                }
+                new_doc.append("items",{
+                    **quarter_data
+                })
+                
+                # quarters_data.append(quarter_data)
+                print(f"    Captured table HTML for {year_text} - {quarter_text}")
+            else:
+                # Still save the form type and net payable even if table isn't found
+                quarter_data = {
+                    'quarter': quarter_text,
+                    'form_type': "",
+                    'net_payable': "",
+                    'table_html': None
+                }
+                new_doc.append("items",{
+                    **quarter_data
+                })
+                
+                # quarters_data.append(quarter_data)
+                print(f"    No table found for {year_text} - {quarter_text}")
+            
+            # Go back to the year page
+            driver.back()
+            time.sleep(5)  # Allow page to fully reload
+        
+
+        doc = new_doc.insert()
+        frappe.db.commit()
+
+        return doc
+        
+    except Exception as e:
+        print(f"Error processing quarters for {year_text}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return None
+
+
+
+
+
+def process_quarters_without_some_fields(driver, tds_doc, year_text):
+    """
+    Process all quarters for a specific financial year and return data
+    """
+    wait = WebDriverWait(driver, 10)
+    new_doc = frappe.get_doc({
+        "doctype":"TDS Summary Details",
+        "fy": year_text,
+        "tds_notice": tds_doc.name,
+    })
+    
+    try:
+        # Wait for the quarters table to be visible
+        wait.until(EC.visibility_of_element_located((By.ID, "demandsumFY1")))
+        
+        # Get the count of quarters first
+        quarter_links = driver.find_elements(By.XPATH, "//table[@id='demandsumFY1']/tbody/tr/td[1]/a")
+        quarter_count = len(quarter_links)
+        
+        print(f"Found {quarter_count} quarters for {year_text}")
+        
+        # Process each quarter by index rather than keeping references to elements
+        for i in range(quarter_count):
+            # Find quarter links fresh each time to avoid stale elements
+            fresh_quarter_links = driver.find_elements(By.XPATH, "//table[@id='demandsumFY1']/tbody/tr/td[1]/a")
+            current_quarter = fresh_quarter_links[i]
+            
+            # Get the quarter text
+            quarter_text = current_quarter.find_element(By.XPATH, ".//span").text
+            print(f"  Processing quarter: {quarter_text}")
+            
+            # Click on the quarter
+            driver.execute_script("arguments[0].click();", current_quarter)
+            time.sleep(3)
+            
+            # Check if the table exists
+            tables = driver.find_elements(By.XPATH, "//table[@class='userList w750']")
+            
+            if tables:
+                # Get the HTML of the table
+                table_html = tables[0].get_attribute('outerHTML')
+                
+                print(table_html)
+
+                # Store the data
+                quarter_data = {
+                    'quarter': quarter_text,
+                    'form_type': "",
+                    'net_payable': "",
+                    'table_html': table_html
+                }
+                new_doc.append("items", quarter_data)
+                
+                print(f"    Captured table HTML for {year_text} - {quarter_text}")
+            else:
+                quarter_data = {
+                    'quarter': quarter_text,
+                    'form_type': "",
+                    'net_payable': "",
+                    'table_html': None
+                }
+                new_doc.append("items", quarter_data)
+                
+                print(f"    No table found for {year_text} - {quarter_text}")
+            
+            # Go back to the year page
+            driver.back()
+            time.sleep(5)  # Allow page to fully reload
+        
+        doc = new_doc.insert()
+        frappe.db.commit()
+        return doc
+        
+    except Exception as e:
+        print(f"Error processing quarters for {year_text}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return None
+    
+
+
+def process_quarters(driver, tds_doc, year_text):
+    """
+    Process all quarters for a specific financial year and return data
+    """
+    wait = WebDriverWait(driver, 10)
+    new_doc = frappe.get_doc({
+        "doctype": "TDS Summary Details",
+        "fy": year_text,
+        "tds_notice": tds_doc.name,
+    })
+    
+    try:
+        # Wait for the quarters table to be visible
+        wait.until(EC.visibility_of_element_located((By.ID, "demandsumFY1")))
+        
+        # Process the initial table to get quarter, form type, and net payable data
+        quarters_table = driver.find_element(By.ID, "demandsumFY1")
+        table_rows = quarters_table.find_elements(By.XPATH, ".//tr[contains(@class, 'odd') or contains(@class, 'even')]")
+        
+        print(f"Found {len(table_rows)} quarters for {year_text}")
+        
+        # Store the quarter links separately to avoid stale elements
+        quarter_links = []
+        quarters_data = []
+        
+        for row in table_rows:
+            try:
+                # Get all cells from the row
+                cells = row.find_elements(By.TAG_NAME, "td")
+                
+                if len(cells) >= 3:
+                    # Extract quarter link element
+                    quarter_link = cells[0].find_element(By.TAG_NAME, "a")
+                    quarter_links.append(quarter_link)
+                    
+                    # Extract quarter text, form type, and net payable
+                    quarter_text = cells[0].find_element(By.XPATH, ".//span").text
+                    form_type = cells[1].find_element(By.XPATH, ".//span").text
+                    net_payable = cells[2].find_element(By.XPATH, ".//span").text
+                    
+                    # Store this initial data
+                    quarters_data.append({
+                        'quarter': quarter_text,
+                        'form_type': form_type,
+                        'net_payable': net_payable
+                    })
+                    
+                    print(f"  Found quarter: {quarter_text}, form type: {form_type}, net payable: {net_payable}")
+            except Exception as e:
+                print(f"Error processing table row: {str(e)}")
+        
+        # Now process each quarter by clicking on them
+        for i, data in enumerate(quarters_data):
+            try:
+                # Find quarter links fresh each time to avoid stale elements
+                fresh_quarter_links = driver.find_elements(By.XPATH, "//table[@id='demandsumFY1']/tbody/tr/td[1]/a")
+                if i < len(fresh_quarter_links):
+                    current_quarter = fresh_quarter_links[i]
+                    quarter_text = data['quarter']
+                    
+                    print(f"  Processing quarter details: {quarter_text}")
+                    
+                    # Click on the quarter
+                    driver.execute_script("arguments[0].click();", current_quarter)
+                    time.sleep(3)
+                    
+                    # Check if the table exists
+                    tables = driver.find_elements(By.XPATH, "//table[@class='userList w750']")
+                    
+                    table_html = None
+                    if tables:
+                        # Get the HTML of the table
+                        table_html = tables[0].get_attribute('outerHTML')
+                        print(f"    Captured table HTML for {year_text} - {quarter_text}")
+                    else:
+                        print(f"    No table found for {year_text} - {quarter_text}")
+                    
+                    # Store the data with form type and net payable from the initial scan
+                    quarter_data = {
+                        'quarter': quarter_text,
+                        'form_type': data['form_type'],
+                        'net_payable': data['net_payable'],
+                        'table_html': table_html
+                    }
+                    new_doc.append("items", quarter_data)
+                    
+                    # Go back to the year page
+                    driver.back()
+                    time.sleep(5)  # Allow page to fully reload
+            except Exception as e:
+                print(f"Error processing quarter {data['quarter']}: {str(e)}")
+        
+        doc = new_doc.insert()
+        frappe.db.commit()
+        return doc
+        
+    except Exception as e:
+        print(f"Error processing quarters for {year_text}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return None
+
+
+
+def process_financial_years_old(driver, tds_doc, table_data):
+    """Process all financial years (except Prior Years) from the dashboard"""
+    wait = WebDriverWait(driver, 20)
+    # all_quarters_data = []
+
+    tds_doc.notice = []
+    try:
+        # First, collect all the year texts we want to process
+        financial_year_links = driver.find_elements(By.XPATH, "//table[@id='fyAmtList']/tbody/tr/td[@aria-describedby='fyAmtList_finYr']")
+        years_to_process = [link.text for link in financial_year_links if "Prior Years" not in link.text]
+        
+        print("Years to process:", years_to_process)
+        
+        # Process each year by finding the element fresh each time
+        for year_text in years_to_process:
+            print("")
+            print(f"Processing financial year: {year_text}")
+            
+            # Find the element again each time to avoid stale element issues
+            year_element = driver.find_element(By.XPATH, f"//table[@id='fyAmtList']/tbody/tr/td[@aria-describedby='fyAmtList_finYr' and text()='{year_text}']")
+            
+            # Click on the year
+            driver.execute_script("arguments[0].click();", year_element)
+            time.sleep(3)
+            
+            # Process all quarters for this year
+            # quarters_doc = process_quarters(driver, tds_doc, year_text)
+
+            # print("quarters_doc", quarters_doc)
+            # print("quarters_doc name", quarters_doc.name)
+            # all_quarters_data.extend(quarters_data)
+            # table_data[year_text]['tds_summary_details'] = quarters_doc
+
+            # tds_doc.append("notices", {
+            #     **table_data[year_text]
+            # })
+
+            quarters_doc = process_quarters(driver, tds_doc, year_text)
+
+            if quarters_doc:
+                print("quarters_doc", quarters_doc)
+                print("quarters_doc name", quarters_doc.name)
+                table_data[year_text]['tds_summary_details'] = quarters_doc
+                
+                tds_doc.append("notices", {
+                    **table_data[year_text]
+                })
+            else:
+                print(f"Failed to process quarters for {year_text}")
+                        
+            # Go back
+            driver.back()
+            time.sleep(10)  # Allow page to fully reload
+
+        tds_doc.save()
+        frappe.db.commit()
+        
+        return True
+        
+    except Exception as e:
+        print(f"Error processing financial years: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+
+def process_financial_years(driver, tds_doc, table_data):
+    """Process all financial years (except Prior Years) from the dashboard"""
+    wait = WebDriverWait(driver, 20)
+    
+    try:
+        # First, collect all the year texts we want to process
+        financial_year_links = driver.find_elements(By.XPATH, "//table[@id='fyAmtList']/tbody/tr/td[@aria-describedby='fyAmtList_finYr']")
+        years_to_process = [link.text for link in financial_year_links if "Prior Years" not in link.text]
+        
+        print("Years to process:", years_to_process)
+        
+        # Process each year by finding the element fresh each time
+        for year_text in years_to_process:
+            print("")
+            print(f"Processing financial year: {year_text}")
+            
+            # Find the element again each time to avoid stale element issues
+            year_element = driver.find_element(By.XPATH, f"//table[@id='fyAmtList']/tbody/tr/td[@aria-describedby='fyAmtList_finYr' and text()='{year_text}']")
+            
+            # Click on the year
+            driver.execute_script("arguments[0].click();", year_element)
+            time.sleep(3)
+            
+            # Process all quarters for this year and get the quarters document
+            quarters_doc = process_quarters(driver, tds_doc, year_text)
+            
+            if quarters_doc:
+                print(f"Successfully processed quarters for {year_text}, doc name: {quarters_doc.name}")
+                
+                # Create a copy of the year's data
+                year_data = table_data.get(year_text, {}).copy()
+                
+                # Set the quarters document link for this specific year
+                year_data['tds_summary_details'] = quarters_doc.name
+                
+                # Append this year's data to the notices child table
+                tds_doc.append("notices", year_data)
+                
+                # Save immediately to persist this link
+                frappe.db.commit()
+            else:
+                print(f"Failed to process quarters for {year_text}")
+            
+            # Go back
+            driver.back()
+            time.sleep(10)  # Allow page to fully reload
+        
+        # Save the main document with all years processed
+        tds_doc.save()
+        frappe.db.commit()
+        
+        return True
+        
+    except Exception as e:
+        print(f"Error processing financial years: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+
+
+
+
+
 def navigate_to_dashboard(driver, client_name):
     """Navigate to dashboard and extract demand data"""
     try:
@@ -137,7 +679,8 @@ def navigate_to_dashboard(driver, client_name):
             print(f"Error in get_or_create_tds_client_document document creation.")
             return False
 
-        create_tds_notices_table(tds_doc, table_data)
+        process_financial_years(driver, tds_doc, table_data)
+        # create_tds_notices_table(tds_doc, table_data)
         
         # Save to Excel
         # save_to_excel(table_data, user_download_dir)
@@ -228,8 +771,8 @@ def extract_demand_table(driver):
         table_html = table.get_attribute('outerHTML')
         soup = BeautifulSoup(table_html, 'html.parser')
         
-        # Initialize lists to store data
-        data = []
+        # Initialize dict to store data
+        data = {}
         
         # Extract rows
         rows = soup.find_all('tr', class_='ui-widget-content jqgrow ui-row-ltr')
@@ -240,17 +783,17 @@ def extract_demand_table(driver):
                 manual_demand = float(cells[1].get('title', '0.00'))
                 processed_demand = float(cells[2].get('title', '0.00'))
                 
-                data.append({
-                    'financial_year': financial_year,
+                data[financial_year] = {
+                    'financial_year':financial_year,
                     'manual_demand': manual_demand,
                     'processed_demand': processed_demand
-                })
+                }
         
         return data
         
     except Exception as e:
         print(f"Error extracting table data: {str(e)}")
-        return []
+        return {}
 
 # def save_to_excel(data, filename='demand_data.xlsx'):
 #     """Save the extracted data to Excel"""

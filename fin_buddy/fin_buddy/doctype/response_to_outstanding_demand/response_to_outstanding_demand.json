@@ -30,7 +30,8 @@
   {
    "fieldname": "assessment_year",
    "fieldtype": "Data",
-   "label": "Assessment Year"
+   "label": "Assessment Year",
+   "non_negative": 1
   },
   {
    "fieldname": "section_code",
@@ -83,7 +84,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-02-18 15:45:40.471952",
+ "modified": "2025-02-25 14:19:16.872933",
  "modified_by": "Administrator",
  "module": "Fin Buddy",
  "name": "Response to Outstanding Demand",
