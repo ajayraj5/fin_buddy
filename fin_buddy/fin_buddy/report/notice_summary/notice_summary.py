@@ -47,7 +47,7 @@ def get_data(filters):
                 ep.proceeding_status as status,
                 0 as amount,
                 STR_TO_DATE(ep.last_response_submitted, '%%d-%%m-%%Y') as last_response_date,
-                ep.notice_letter_pdf,
+                ep.notice_letter,
                 ep.response_acknowledgement
             FROM 
                 `tabE Proceeding` ep
@@ -64,7 +64,7 @@ def get_data(filters):
         
         for row in e_proceeding_data:
             row['document_link'] = f'<a href="/app/e-proceeding/{row.doc_name}" target="_blank">View</a>'
-            row['notice_letter_link'] = get_attachment_link(row.notice_letter_pdf, "Notice")
+            row['notice_letter_link'] = get_attachment_link(row.notice_letter, "Notice")
             row['response_ack_link'] = get_attachment_link(row.response_acknowledgement, "Acknowledgement")
         
         data.extend(e_proceeding_data)
