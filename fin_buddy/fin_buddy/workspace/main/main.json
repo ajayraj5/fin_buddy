@@ -1,0 +1,69 @@
+{
+ "charts": [],
+ "content": "[{\"id\":\"lPpGuXJIjp\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Main</span>\",\"col\":12}},{\"id\":\"6Q-306GPCG\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Income Tax\",\"col\":3}},{\"id\":\"5J2b1D2p4b\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"GST\",\"col\":3}},{\"id\":\"RNQAerMhoN\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"TDS\",\"col\":3}},{\"id\":\"WYf3mqeVsS\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"VqsnuI27Qt\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Client\",\"col\":3}},{\"id\":\"-YhPQHODuy\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"IncomeTax Notice Summary\",\"col\":3}}]",
+ "creation": "2025-02-25 11:53:20.721772",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "icon": "color-review-points",
+ "idx": 0,
+ "indicator_color": "",
+ "is_hidden": 0,
+ "label": "Main",
+ "links": [],
+ "modified": "2025-02-28 10:10:48.826726",
+ "modified_by": "Administrator",
+ "module": "Fin Buddy",
+ "name": "Main",
+ "number_cards": [],
+ "owner": "Administrator",
+ "parent_page": "",
+ "public": 1,
+ "quick_lists": [],
+ "roles": [],
+ "sequence_id": 1.0,
+ "shortcuts": [
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Income Tax",
+   "link_to": "Income Tax Client",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "IncomeTax Notice Summary",
+   "link_to": "Notice Summary",
+   "type": "Report"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Client",
+   "link_to": "Client",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "GST",
+   "link_to": "GST Client",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "TDS",
+   "link_to": "TDS Client",
+   "stats_filter": "[]",
+   "type": "DocType"
+  }
+ ],
+ "title": "Main"
+}

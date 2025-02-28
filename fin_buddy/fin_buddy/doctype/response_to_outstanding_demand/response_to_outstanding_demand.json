@@ -14,10 +14,20 @@
   "section_break_rwbh",
   "section_code",
   "rectification_rights",
-  "notice",
+  "notice_letter",
   "column_break_sywi",
   "mode_of_service",
-  "response_type"
+  "response_type",
+  "response_generation_section",
+  "user_input",
+  "other_documents",
+  "mask_this_data",
+  "section_break_gorx",
+  "fetch_response_from_gpt",
+  "column_break_fyot",
+  "view_data_before_response_generation",
+  "section_break_nokg",
+  "response_message"
  ],
  "fields": [
   {
@@ -77,14 +87,68 @@
    "options": "Client"
   },
   {
-   "fieldname": "notice",
+   "fieldname": "response_generation_section",
+   "fieldtype": "Section Break",
+   "label": "Response Generation"
+  },
+  {
+   "fieldname": "user_input",
+   "fieldtype": "Small Text",
+   "label": "User Input"
+  },
+  {
+   "description": "(include only .pdf, .doc, .docx)",
+   "fieldname": "other_documents",
+   "fieldtype": "Table",
+   "label": "Other Documents",
+   "options": "Attachment Item"
+  },
+  {
+   "fieldname": "mask_this_data",
+   "fieldtype": "Small Text",
+   "label": "Mask This Data"
+  },
+  {
+   "fieldname": "section_break_gorx",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_fyot",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "view_data_before_response_generation",
+   "fieldtype": "Button",
+   "label": "View Data Before Response Generation"
+  },
+  {
+   "fieldname": "section_break_nokg",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "response_message",
+   "fieldtype": "Text Editor",
+   "label": "Response Message"
+  },
+  {
+   "fieldname": "fetch_response_from_gpt",
+   "fieldtype": "Button",
+   "label": "Generate Response"
+  },
+  {
+   "fieldname": "notice_letter",
    "fieldtype": "Attach",
    "label": "Notice"
   }
  ],
  "index_web_pages_for_search": 1,
- "links": [],
- "modified": "2025-02-25 14:19:16.872933",
+ "links": [
+  {
+   "link_doctype": "Generate Response Log",
+   "link_fieldname": "doc_name"
+  }
+ ],
+ "modified": "2025-02-27 15:06:56.512967",
  "modified_by": "Administrator",
  "module": "Fin Buddy",
  "name": "Response to Outstanding Demand",

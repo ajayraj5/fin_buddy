@@ -33,7 +33,10 @@
   "user_input",
   "other_documents",
   "mask_this_data",
+  "section_break_yeyf",
   "fetch_response_from_gpt",
+  "column_break_dxox",
+  "view_data_before_response_generation",
   "section_break_pagl",
   "response_message"
  ],
@@ -89,7 +92,7 @@
   },
   {
    "fieldname": "notice_sent_date",
-   "fieldtype": "Data",
+   "fieldtype": "Date",
    "in_list_view": 1,
    "label": "Notice Sent Date"
   },
@@ -132,7 +135,7 @@
   },
   {
    "fieldname": "response_due_date",
-   "fieldtype": "Data",
+   "fieldtype": "Date",
    "in_list_view": 1,
    "label": "Response Due Date"
   },
@@ -193,11 +196,29 @@
    "fieldname": "mask_this_data",
    "fieldtype": "Small Text",
    "label": "Mask This Data"
+  },
+  {
+   "fieldname": "section_break_yeyf",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_dxox",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "view_data_before_response_generation",
+   "fieldtype": "Button",
+   "label": "View Data Before Response Generation"
   }
  ],
  "index_web_pages_for_search": 1,
- "links": [],
- "modified": "2025-02-25 14:32:06.248946",
+ "links": [
+  {
+   "link_doctype": "Generate Response Log",
+   "link_fieldname": "doc_name"
+  }
+ ],
+ "modified": "2025-02-27 12:07:13.920473",
  "modified_by": "Administrator",
  "module": "Fin Buddy",
  "name": "E Proceeding",

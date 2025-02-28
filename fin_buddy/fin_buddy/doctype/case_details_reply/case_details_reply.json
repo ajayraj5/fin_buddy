@@ -1,0 +1,66 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-02-27 20:30:30.274613",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "reply_type",
+  "reply_filed_against",
+  "reply_date",
+  "personal_hearing",
+  "attachments"
+ ],
+ "fields": [
+  {
+   "fieldname": "reply_type",
+   "fieldtype": "Data",
+   "label": "reply type"
+  },
+  {
+   "fieldname": "reply_filed_against",
+   "fieldtype": "Data",
+   "label": "reply_filed_against"
+  },
+  {
+   "fieldname": "reply_date",
+   "fieldtype": "Data",
+   "label": "reply_date"
+  },
+  {
+   "fieldname": "personal_hearing",
+   "fieldtype": "Data",
+   "label": "personal_hearing"
+  },
+  {
+   "fieldname": "attachments",
+   "fieldtype": "Table",
+   "label": "attachments",
+   "options": "Attachment Item"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-02-27 20:34:39.526885",
+ "modified_by": "Administrator",
+ "module": "Fin Buddy",
+ "name": "Case Details Reply",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

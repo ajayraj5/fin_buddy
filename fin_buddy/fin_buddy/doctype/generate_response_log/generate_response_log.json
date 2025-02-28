@@ -1,0 +1,132 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:GEN-RSP-LOG-{#####}",
+ "creation": "2025-02-27 10:44:54.608482",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "details_section",
+  "client",
+  "doctype_name",
+  "doc_name",
+  "stage_1_initial_input_section",
+  "initial_content",
+  "stage_2_combined_content_section",
+  "combined_content",
+  "stage_3_masked_content_and_mapping_section",
+  "masked_content",
+  "stage_4_masked_response_from_gpt_section",
+  "masked_response",
+  "stage_5_final_unmasked_response_section",
+  "final_response"
+ ],
+ "fields": [
+  {
+   "fieldname": "client",
+   "fieldtype": "Link",
+   "label": "Client",
+   "options": "Client",
+   "read_only": 1
+  },
+  {
+   "fieldname": "doctype_name",
+   "fieldtype": "Link",
+   "label": "Doctype Name",
+   "options": "DocType",
+   "read_only": 1
+  },
+  {
+   "fieldname": "doc_name",
+   "fieldtype": "Dynamic Link",
+   "label": "Doc Name",
+   "options": "doctype_name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "stage_1_initial_input_section",
+   "fieldtype": "Section Break",
+   "label": "STAGE 1 INITIAL INPUT"
+  },
+  {
+   "fieldname": "initial_content",
+   "fieldtype": "Long Text",
+   "label": "Initial Input",
+   "read_only": 1
+  },
+  {
+   "fieldname": "details_section",
+   "fieldtype": "Section Break",
+   "label": "Details"
+  },
+  {
+   "fieldname": "stage_2_combined_content_section",
+   "fieldtype": "Section Break",
+   "label": "STAGE 2 COMBINED CONTENT"
+  },
+  {
+   "fieldname": "combined_content",
+   "fieldtype": "Long Text",
+   "label": "Combined Content",
+   "read_only": 1
+  },
+  {
+   "fieldname": "stage_3_masked_content_and_mapping_section",
+   "fieldtype": "Section Break",
+   "label": "STAGE 3 MASKED CONTENT AND MAPPING"
+  },
+  {
+   "fieldname": "masked_content",
+   "fieldtype": "Long Text",
+   "label": "Masked Content",
+   "read_only": 1
+  },
+  {
+   "fieldname": "stage_4_masked_response_from_gpt_section",
+   "fieldtype": "Section Break",
+   "label": "STAGE 4 MASKED RESPONSE FROM GPT"
+  },
+  {
+   "fieldname": "masked_response",
+   "fieldtype": "Long Text",
+   "label": "Masked Response",
+   "read_only": 1
+  },
+  {
+   "fieldname": "stage_5_final_unmasked_response_section",
+   "fieldtype": "Section Break",
+   "label": "STAGE 5 FINAL UNMASKED RESPONSE"
+  },
+  {
+   "fieldname": "final_response",
+   "fieldtype": "Long Text",
+   "label": "Final Response",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-02-27 10:55:29.805259",
+ "modified_by": "Administrator",
+ "module": "Fin Buddy",
+ "name": "Generate Response Log",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

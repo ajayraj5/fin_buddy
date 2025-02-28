@@ -301,7 +301,7 @@ def create_or_update_demand_old(demand, client_name, file_path):
                         filters={
                             "attached_to_doctype": "Response to Outstanding Demand",
                             "attached_to_name": doc.name,
-                            "attached_to_field": "notice"
+                            "attached_to_field": "notice_letter"
                         }
                     )
                     
@@ -325,7 +325,7 @@ def create_or_update_demand_old(demand, client_name, file_path):
                         'content': file_content,
                         'attached_to_doctype': 'Response to Outstanding Demand',
                         'attached_to_name': doc.name,
-                        'attached_to_field': 'notice'
+                        'attached_to_field': 'notice_letter'
                     })
                     attachment.insert()
                     
@@ -402,7 +402,7 @@ def handle_file_attachment(doc, file_path, file_content):
             filters={
                 "attached_to_doctype": "Response to Outstanding Demand",
                 "attached_to_name": doc.name,
-                "attached_to_field": "notice"
+                "attached_to_field": "notice_letter"
             }
         )
         
@@ -1901,10 +1901,10 @@ def handle_eproceedings_submit_response(driver, client_name, notice_id):
 # OPEN AI and response generation
 
 @frappe.whitelist()
-def fetch_response_from_gpt(docname):
+def fetch_response_from_gpt(doctype,docname, is_view_data_before_response_generation=False):
 
     # Get the document from the Doctype
-    doc = frappe.get_doc("E Proceeding", docname)
+    doc = frappe.get_doc(doctype, docname)
 
     settings = frappe.get_single("FinBuddy Settings")
 
@@ -1943,7 +1943,6 @@ def fetch_response_from_gpt(docname):
     user_input += f"And Today date is {today.strftime('%d-%m-%Y')}. Other dates are notice dates like sent or other."
     # user_input += f"\n Proceeding Name is {doc.proceeding_name} and Financial Year is {doc.financial_year} and Document Identification Number is {doc.notice_din} and Notice Section is {doc.notice_section} and Assessment Year is {doc.assessment_year} and Document reference ID is {doc.notice_communication_reference_id}. If some value is not present then ignore that values."
 
-    print("pdf content", notice_text)
     
     other_documents_text = ""
     for document in doc.other_documents:
@@ -1975,16 +1974,18 @@ def fetch_response_from_gpt(docname):
 
     mask_this_data = doc.mask_this_data or ""
 
-    # Query OpenAI
-    response = query_openai(user_input, notice_text, other_documents_text, mask_this_data)
+    if not is_view_data_before_response_generation:
+        # Query OpenAI
+        response = query_openai(user_input, notice_text, other_documents_text, mask_this_data, doc)
 
-    # Save response in the response_message field
-    doc.response_message = response
-    doc.save()
-    frappe.db.commit()
+        # Save response in the response_message field
+        doc.response_message = response
+        doc.save()
+        frappe.db.commit()
 
-    return response  # Return the response to frontend (optional)
-
+        return response  # Return the response to frontend (optional)
+    else:
+        return view_data_before_response_generation(user_input, notice_text, other_documents_text, mask_this_data)
 
 def extract_pdf_text_old(pdf_path):
     """Extracts and cleans text from a given PDF file."""
@@ -2289,9 +2290,42 @@ def query_openai_fine(user_input, notice_text, other_documents_text):
 
 
 
+def view_data_before_response_generation(user_input: str, notice_text: str, other_documents_text: str, mask_this_data: str) -> str:
+    try:
+        # Initialize
+        masker = DataMaskingUtil()
+        
+        # Log initial inputs
+        initial_content = f"User Input:\n{user_input}\n\nNotice Data:\n{notice_text}\n\nOther Document Text:\n{other_documents_text}\n\nMask This Data:\n{mask_this_data}\n"
+        # log_filepath = write_to_content_file(initial_content, "1. INITIAL INPUT")
+        
+        # Combine content
+        combined_user_content = f"""Notice File Content:\n{notice_text}\n\nAdditional Documents:\n{other_documents_text}\n\nUser Input:\n{user_input}\n"""
+        
+        # Process mask_this_data into list
+        entities_to_mask = [
+            item.strip() 
+            for item in mask_this_data.split(',') 
+            if item.strip()  # Only include non-empty items
+        ]
+        
+        # First mask the explicitly provided entities
+        masked_content = masker.mask_text(combined_user_content, entities_to_mask)
+        
+        # Then mask other sensitive data (PAN, dates, etc.)
+        masked_content = masker.mask_text(masked_content)  # Second pass without entities list
+        
+
+        masked_content_and_map = f"Masked Content Which We Will Send To AI For Response Generation\n\n{masked_content}\n\nMapping:\n{masker.mapping}\n\nEntity To Mask:\n{entities_to_mask}\n"
+        
+        return {"data": masked_content_and_map}
+        
+    except Exception as e:
+        frappe.log_error("problem in view data before response generation", str(e))
+        return {"data": "Not abel to show Masked Content and Mapping."}
 
 
-def query_openai(user_input: str, notice_text: str, other_documents_text: str, mask_this_data: str) -> str:
+def query_openai(user_input: str, notice_text: str, other_documents_text: str, mask_this_data: str, current_doc) -> str:
     """
     Process content through OpenAI with masking/unmasking
     
@@ -2309,21 +2343,24 @@ def query_openai(user_input: str, notice_text: str, other_documents_text: str, m
         log_filepath = None
         
         # Log initial inputs
-        initial_content = {
-            "user_input": user_input,
-            "notice_text": notice_text,
-            "other_documents_text": other_documents_text,
-            "mask_this_data": mask_this_data
+        initial_content = f"User Input:\n{user_input}\n\nNotice Data:\n{notice_text}\n\nOther Document Text:\n{other_documents_text}\n\nMask This Data:\n{mask_this_data}\n"
+        # log_filepath = write_to_content_file(initial_content, "1. INITIAL INPUT")
+
+        doc_info = {
+            'client_name': current_doc.client,
+            'doctype_name': current_doc.doctype,
+            'doc_name': current_doc.name,
         }
-        log_filepath = write_to_content_file(initial_content, "1. INITIAL INPUT")
+        response_doc_log = write_content_generation_logs(initial_content, 'initial_content', None, doc_info)
+
+        print("respne doc log")
+        print(response_doc_log)
         
         # Combine content
-        combined_user_content = f"""Notice File Content: {notice_text} 
-Additional Documents: {other_documents_text} 
-User Input: {user_input}"""
+        combined_user_content = f"""Notice File Content:\n{notice_text}\n\nAdditional Documents:\n{other_documents_text}\n\nUser Input:\n{user_input}\n"""
         
-        write_to_content_file(combined_user_content, "2. COMBINED CONTENT", log_filepath)
-        
+        # write_to_content_file(combined_user_content, "2. COMBINED CONTENT", log_filepath)
+        response_doc_log = write_content_generation_logs(combined_user_content, 'combined_content', response_doc_log, doc_info)
         # Process mask_this_data into list
         entities_to_mask = [
             item.strip() 
@@ -2337,11 +2374,15 @@ User Input: {user_input}"""
         # Then mask other sensitive data (PAN, dates, etc.)
         masked_content = masker.mask_text(masked_content)  # Second pass without entities list
         
-        write_to_content_file({
-            "masked_content": masked_content,
-            "mapping": masker.mapping,
-            "entities_masked": entities_to_mask
-        }, "3. MASKED CONTENT AND MAPPING", log_filepath)
+        # write_to_content_file({
+        #     "masked_content": masked_content,
+        #     "mapping": masker.mapping,
+        #     "entities_masked": entities_to_mask
+        # }, "3. MASKED CONTENT AND MAPPING", log_filepath)
+        
+        masked_content_and_map = f"Masked Content:\n{masked_content}\n\nMapping:\n{masker.mapping}\n\nEntity To Mask:\n{entities_to_mask}\n"
+
+        response_doc_log = write_content_generation_logs(masked_content_and_map, 'masked_content', response_doc_log, doc_info)
         
         # Save mapping to settings
         mapping_data = {
@@ -2361,7 +2402,7 @@ User Input: {user_input}"""
             "frequency_penalty": settings.frequency_penalty or 0.3,
             "system_role": system_role
         }
-        write_to_content_file(openai_request, "4. OPENAI REQUEST", log_filepath)
+        # write_to_content_file(openai_request, "4. OPENAI REQUEST", log_filepath)
         
         # Make API call
         response = openai.ChatCompletion.create(
@@ -2377,14 +2418,24 @@ User Input: {user_input}"""
         
         # Process response
         masked_response = response["choices"][0]["message"]["content"].strip()
-        write_to_content_file(masked_response, "5. MASKED RESPONSE FROM GPT", log_filepath)
+        # write_to_content_file(masked_response, "5. MASKED RESPONSE FROM GPT", log_filepath)
+
+        response_doc_log = write_content_generation_logs(masked_response, 'masked_response', response_doc_log, doc_info)
         
         # Unmask response
         stored_mapping = json.loads(settings.mapping_content)
         masker.mapping = stored_mapping['mapping']
         unmasked_response = masker.restore_text(masked_response)
         
-        write_to_content_file(unmasked_response, "6. FINAL UNMASKED RESPONSE", log_filepath)
+        # write_to_content_file(unmasked_response, "6. FINAL UNMASKED RESPONSE", log_filepath)
+        response_doc_log = write_content_generation_logs(unmasked_response, 'final_response', response_doc_log, doc_info)
+
+
+        # print("before insert")
+        # print(response_doc_log.as_dict())
+
+        response_doc_log.insert()
+        frappe.db.commit()
         
         return unmasked_response
         
@@ -2426,3 +2477,29 @@ def write_to_content_file(content: Any, stage: str, filepath: Optional[str] = No
     except Exception as e:
         frappe.log_error(f"Error writing to content tracking file: {str(e)}")
         return ""
+
+
+
+
+def write_content_generation_logs(content, stage_name, doc_name=None, doc_info=None):
+    try:
+        print("stage_name", stage_name)
+        print("doc_name", doc_name)
+        print("doc_info", doc_info)
+        if not doc_name:
+            doc_name = frappe.get_doc({
+                'doctype': "Generate Response Log",
+                'client': doc_info['client_name'],
+                'doctype_name': doc_info['doctype_name'],
+                'doc_name': doc_info['doc_name'],
+            })
+
+            print("my_doc")
+
+        doc_name.set(stage_name, content)
+        
+        return doc_name
+        
+    except Exception as e:
+        frappe.log_error(f"Error creating to response generation log tracking: {str(e)}")
+        return None

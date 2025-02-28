@@ -1,6 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
+ "autoname": "format:TDS-SMRY-{#####}",
  "creation": "2025-02-25 19:31:10.489674",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -29,10 +30,11 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-02-25 21:31:18.896789",
+ "modified": "2025-02-27 16:26:27.662913",
  "modified_by": "Administrator",
  "module": "Fin Buddy",
  "name": "TDS Summary Details",
+ "naming_rule": "Expression",
  "owner": "Administrator",
  "permissions": [
   {

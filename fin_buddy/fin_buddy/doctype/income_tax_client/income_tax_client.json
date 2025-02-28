@@ -7,10 +7,10 @@
  "engine": "InnoDB",
  "field_order": [
   "client_details_section",
+  "client_id",
   "client_name",
-  "dob",
   "column_break_kufo",
-  "disabled",
+  "dob",
   "login_credentials_section",
   "username",
   "column_break_nlld",
@@ -27,23 +27,19 @@
   {
    "fieldname": "client_name",
    "fieldtype": "Data",
-   "label": "Client Name"
+   "label": "Client Name",
+   "read_only": 1
   },
   {
    "description": "(DDMMYYYY)",
    "fieldname": "dob",
    "fieldtype": "Data",
-   "label": "DOB"
+   "label": "DOB",
+   "read_only": 1
   },
   {
    "fieldname": "column_break_kufo",
    "fieldtype": "Column Break"
-  },
-  {
-   "default": "0",
-   "fieldname": "disabled",
-   "fieldtype": "Check",
-   "label": "Disabled"
   },
   {
    "fieldname": "login_credentials_section",
@@ -55,7 +51,8 @@
    "fieldtype": "Data",
    "in_list_view": 1,
    "in_standard_filter": 1,
-   "label": "IncomeTax Username"
+   "label": "IncomeTax Username",
+   "read_only": 1
   },
   {
    "fieldname": "column_break_nlld",
@@ -65,7 +62,8 @@
    "fieldname": "password",
    "fieldtype": "Password",
    "in_list_view": 1,
-   "label": "Password"
+   "label": "Password",
+   "read_only": 1
   },
   {
    "fieldname": "income_tax_details_section",
@@ -77,11 +75,21 @@
    "fieldtype": "Datetime",
    "label": "Last Income Tax Sync",
    "read_only": 1
+  },
+  {
+   "fieldname": "client_id",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Client ID",
+   "options": "Client",
+   "reqd": 1,
+   "unique": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-02-25 14:07:29.057925",
+ "modified": "2025-02-28 12:00:05.791406",
  "modified_by": "Administrator",
  "module": "Fin Buddy",
  "name": "Income Tax Client",

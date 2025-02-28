@@ -60,7 +60,7 @@
    "fieldname": "password",
    "fieldtype": "Password",
    "in_list_view": 1,
-   "label": "Password"
+   "label": "IncomeTax Password"
   },
   {
    "fieldname": "column_break_kufo",
@@ -119,7 +119,7 @@
    "fieldname": "gst_password",
    "fieldtype": "Password",
    "in_list_view": 1,
-   "label": "Password"
+   "label": "GST Password"
   },
   {
    "fieldname": "tds_login_credentials_section",
@@ -141,7 +141,7 @@
    "fieldname": "tds_password",
    "fieldtype": "Password",
    "in_list_view": 1,
-   "label": "Password"
+   "label": "TDS Password"
   },
   {
    "description": "(DDMMYYYY)",
@@ -171,9 +171,21 @@
    "group": "TDS",
    "link_doctype": "TDS Notice",
    "link_fieldname": "client"
+  },
+  {
+   "link_doctype": "Income Tax Client",
+   "link_fieldname": "client_id"
+  },
+  {
+   "link_doctype": "GST Client",
+   "link_fieldname": "client_id"
+  },
+  {
+   "link_doctype": "TDS Client",
+   "link_fieldname": "client_id"
   }
  ],
- "modified": "2025-02-25 12:19:05.086763",
+ "modified": "2025-02-28 11:39:50.238266",
  "modified_by": "Administrator",
  "module": "Fin Buddy",
  "name": "Client",

@@ -7,6 +7,7 @@
  "engine": "InnoDB",
  "field_order": [
   "client_details_section",
+  "client_id",
   "client_name",
   "column_break_kufo",
   "disabled",
@@ -26,17 +27,12 @@
   {
    "fieldname": "client_name",
    "fieldtype": "Data",
-   "label": "Client Name"
+   "label": "Client Name",
+   "read_only": 1
   },
   {
    "fieldname": "column_break_kufo",
    "fieldtype": "Column Break"
-  },
-  {
-   "default": "0",
-   "fieldname": "disabled",
-   "fieldtype": "Check",
-   "label": "Disabled"
   },
   {
    "fieldname": "gst_login_credentials_section",
@@ -48,7 +44,8 @@
    "fieldtype": "Data",
    "in_list_view": 1,
    "in_standard_filter": 1,
-   "label": "GST Username"
+   "label": "GST Username",
+   "read_only": 1
   },
   {
    "fieldname": "column_break_gawf",
@@ -58,7 +55,8 @@
    "fieldname": "gst_password",
    "fieldtype": "Password",
    "in_list_view": 1,
-   "label": "Password"
+   "label": "Password",
+   "read_only": 1
   },
   {
    "fieldname": "income_tax_details_section",
@@ -70,11 +68,29 @@
    "fieldtype": "Datetime",
    "label": "Last GST Sync",
    "read_only": 1
+  },
+  {
+   "fieldname": "client_id",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Client ID",
+   "options": "Client",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "disabled",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "disabled",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-02-25 14:08:55.286723",
+ "modified": "2025-02-28 13:30:37.313940",
  "modified_by": "Administrator",
  "module": "Fin Buddy",
  "name": "GST Client",

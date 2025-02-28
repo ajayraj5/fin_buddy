@@ -5,5 +5,5 @@
 from frappe.model.document import Document
 
 
-class TDSSummary(Document):
+class CaseDetailsReplyItem(Document):
 	pass

@@ -20,7 +20,11 @@ frappe.ui.form.on("Client", {
                             callback: function(response) {
                                 // Handle the response if needed
                                 if (response.message) {
-                                    frappe.msgprint(__(response.message.message));
+                                    // frappe.msgprint(__(response.message.message));
+                                    frappe.show_alert({
+                                        message: __("Processing Started"),
+                                        indicator: 'green'
+                                    });
                                 }
                             }
                         });
@@ -49,7 +53,11 @@ frappe.ui.form.on("Client", {
                             callback: function(response) {
                                 // Handle the response if needed
                                 if (response.message) {
-                                    frappe.msgprint(__(response.message.message));
+                                    // frappe.msgprint(__(response.message.message));
+                                    frappe.show_alert({
+                                        message: __("Processing Started"),
+                                        indicator: 'green'
+                                    });
                                 }
                             }
                         });
@@ -78,7 +86,11 @@ frappe.ui.form.on("Client", {
                             callback: function(response) {
                                 // Handle the response if needed
                                 if (response.message) {
-                                    frappe.msgprint(__(response.message.message));
+                                    // frappe.msgprint(__(response.message.message));
+                                    frappe.show_alert({
+                                        message: __("Processing Started"),
+                                        indicator: 'green'
+                                    });
                                 }
                             }
                         });
