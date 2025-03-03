@@ -5,3 +5,5 @@ openai==0.28.0
 PyPDF2==3.0.1
 python-docx==1.1.2
 pdfminer.six==20240706
+googletrans==4.0.0rc1
+multilingual-pdf2text==1.1.0
