@@ -14,7 +14,7 @@
    "fieldname": "client",
    "fieldtype": "Link",
    "label": "Client",
-   "options": "Client"
+   "options": "TDS Client"
   },
   {
    "fieldname": "notices",
@@ -25,7 +25,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-02-23 12:09:20.895448",
+ "modified": "2025-03-03 16:29:11.883193",
  "modified_by": "Administrator",
  "module": "Fin Buddy",
  "name": "TDS Notice",

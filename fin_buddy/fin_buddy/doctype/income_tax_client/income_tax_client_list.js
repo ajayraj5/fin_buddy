@@ -10,7 +10,7 @@ frappe.listview_settings['Income Tax Client'] = {
             }
             
             // Get the names of selected clients
-            const client_names = selected_docs.map(doc => doc.client_id);
+            const client_names = selected_docs.map(doc => doc.name);
             
             frappe.confirm(
                 __(`Process Income Tax data for ${selected_docs.length} selected client(s)?`),

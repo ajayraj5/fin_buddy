@@ -5,6 +5,8 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
+  "env",
+  "section_break_hsvs",
   "model_name",
   "openai_key",
   "system_role",
@@ -89,12 +91,22 @@
    "fieldname": "mapping_content",
    "fieldtype": "Long Text",
    "label": "Mapping Content"
+  },
+  {
+   "fieldname": "env",
+   "fieldtype": "Select",
+   "label": "Env",
+   "options": "Local\nProduction"
+  },
+  {
+   "fieldname": "section_break_hsvs",
+   "fieldtype": "Section Break"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-02-23 18:38:13.812485",
+ "modified": "2025-03-03 15:39:22.738252",
  "modified_by": "Administrator",
  "module": "Fin Buddy",
  "name": "FinBuddy Settings",

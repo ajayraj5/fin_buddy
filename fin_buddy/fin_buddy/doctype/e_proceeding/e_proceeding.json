@@ -65,7 +65,7 @@
    "fieldname": "client",
    "fieldtype": "Link",
    "label": "Client",
-   "options": "Client"
+   "options": "Income Tax Client"
   },
   {
    "fieldname": "notice_details_section",
@@ -218,7 +218,7 @@
    "link_fieldname": "doc_name"
   }
  ],
- "modified": "2025-02-27 12:07:13.920473",
+ "modified": "2025-03-03 16:16:10.797444",
  "modified_by": "Administrator",
  "module": "Fin Buddy",
  "name": "E Proceeding",

@@ -2,26 +2,26 @@
 // For license information, please see license.txt
 
 frappe.ui.form.on("GST Client", {
-    client_id(frm){
-        if(frm.doc.client_id){
-            // fetch details
-            frappe.db.get_value("Client", frm.doc.client_id, ["client_name", "gst_username", "gst_password", "last_gst_sync"]).then((r)=>{
+    // client_id(frm){
+    //     if(frm.doc.client_id){
+    //         // fetch details
+    //         frappe.db.get_value("Client", frm.doc.client_id, ["client_name", "gst_username", "gst_password", "last_gst_sync"]).then((r)=>{
                 
-                if(r.message){
-                    frm.set_value("client_name", r.message.client_name);
-                    frm.set_value("gst_username", r.message.gst_username);
-                    frm.set_value("gst_password", r.message.gst_password);
-                    frm.set_value("last_gst_sync", r.message.last_gst_sync);
-                }
-            })
-        }
-        else{
-            frm.set_value("client_name", "");
-            frm.set_value("gst_username", "");
-            frm.set_value("gst_password", "");
-            frm.set_value("last_gst_sync", "");
-        }
-    },
+    //             if(r.message){
+    //                 frm.set_value("client_name", r.message.client_name);
+    //                 frm.set_value("gst_username", r.message.gst_username);
+    //                 frm.set_value("gst_password", r.message.gst_password);
+    //                 frm.set_value("last_gst_sync", r.message.last_gst_sync);
+    //             }
+    //         })
+    //     }
+    //     else{
+    //         frm.set_value("client_name", "");
+    //         frm.set_value("gst_username", "");
+    //         frm.set_value("gst_password", "");
+    //         frm.set_value("last_gst_sync", "");
+    //     }
+    // },
     refresh(frm) {
         if (!frm.is_new() && !frm.doc.disabled && frm.doc.gst_username && frm.doc.gst_password){
             frm.add_custom_button(__("GST"), function() {
@@ -32,7 +32,7 @@ frappe.ui.form.on("GST Client", {
                         frappe.call({
                             method: "fin_buddy.events.gst_gov.login_into_portal",
                             args: {
-                                client_name: frm.doc.client_id  // Pass client name to the method
+                                client_name: frm.doc.name  // Pass client name to the method
                             },
                             freeze: true,
                             freeze_message: __("Queuing selected clients for processing..."),
@@ -57,9 +57,9 @@ frappe.ui.form.on("GST Client", {
         }
 
 
-        if (!frm.is_new() && frm.doc.client_id){
+        if (!frm.is_new() && frm.doc.name){
             frm.add_custom_button("View GST Notices", function(){
-                frappe.set_route("List", "GST Notice", { client: frm.doc.client_id });
+                frappe.set_route("List", "GST Notice", { client: frm.doc.name });
             });
         }
 

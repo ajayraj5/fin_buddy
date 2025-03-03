@@ -13,7 +13,7 @@ from selenium.webdriver.common.keys import Keys # type: ignore
 from selenium.webdriver.common.action_chains import ActionChains # type: ignore
 from selenium.common.exceptions import TimeoutException # type: ignore
 
-
+import tempfile
 import frappe
 import fin_buddy.utils.dates as MakeDateValid
 
@@ -39,6 +39,15 @@ def setup_chrome_options(user_download_dir):
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_experimental_option("useAutomationExtension", False)
     options.add_experimental_option('excludeSwitches', ['enable-automation'])
+
+    settings = frappe.get_single("FinBuddy Settings")
+    if settings.env == 'Production':
+        # Create a unique temporary directory for user data
+        unique_user_data_dir = os.path.join(tempfile.gettempdir(), f"chrome_user_data_{os.getpid()}")
+        options.add_argument(f"--user-data-dir={unique_user_data_dir}") 
+        options.add_argument("--headless")
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
 
     prefs = {
         "download.default_directory": user_download_dir,
@@ -708,7 +717,7 @@ def process_selected_clients(client_names):
     # Queue each client for processing
     for client_name in client_names:
         # Get the client doc
-        doc = frappe.get_doc("Client", client_name)
+        doc = frappe.get_doc("GST Client", client_name)
         
         
         # Queue the background job
@@ -731,7 +740,7 @@ def process_single_client(client_name):
     """
     try:
         # Get the client document
-        doc = frappe.get_doc("Client", client_name)
+        doc = frappe.get_doc("GST Client", client_name)
         
         
         # Get credentials
@@ -784,7 +793,7 @@ def login_into_portal(client_name):
     """
     if client_name:
         # Get the client doc
-        doc = frappe.get_doc("Client", client_name)
+        doc = frappe.get_doc("GST Client", client_name)
 
         # Queue the background job
         if not doc.disabled:
@@ -804,7 +813,7 @@ def login_into_portal(client_name):
 
 def login(client_name):
     try:
-        doc = frappe.get_doc("Client", client_name)
+        doc = frappe.get_doc("GST Client", client_name)
         # Get credentials
         username = doc.gst_username
         password = doc.get_password("gst_password")

@@ -1,4 +1,4 @@
-frappe.listview_settings['Client'] = {
+frappe.listview_settings['TDS Client'] = {
     onload: function(listview) {
         
         listview.page.add_action_item(__('Process TDS Data'), function() {
@@ -11,7 +11,7 @@ frappe.listview_settings['Client'] = {
             }
             
             // Get the names of selected clients
-            const client_names = selected_docs.map(doc => doc.client_id);
+            const client_names = selected_docs.map(doc => doc.name);
             
             frappe.confirm(
                 __(`Process TDS data for ${selected_docs.length} selected client(s)?`),

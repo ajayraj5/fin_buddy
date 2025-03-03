@@ -15,7 +15,7 @@
    "fieldname": "client",
    "fieldtype": "Link",
    "label": "Client",
-   "options": "Client"
+   "options": "GST Client"
   },
   {
    "fieldname": "notices",
@@ -32,7 +32,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-02-23 13:27:53.562249",
+ "modified": "2025-03-03 16:21:38.012895",
  "modified_by": "Administrator",
  "module": "Fin Buddy",
  "name": "GST Notice",

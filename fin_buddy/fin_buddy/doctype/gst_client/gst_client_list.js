@@ -11,7 +11,7 @@ frappe.listview_settings['GST Client'] = {
             }
             console.log(selected_docs)
             // Get the names of selected clients
-            const client_names = selected_docs.map(doc => doc.client_id);
+            const client_names = selected_docs.map(doc => doc.name);
             console.log(client_names);
             
             frappe.confirm(

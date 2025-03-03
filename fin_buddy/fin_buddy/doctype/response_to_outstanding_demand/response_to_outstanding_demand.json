@@ -84,7 +84,7 @@
    "fieldname": "client",
    "fieldtype": "Link",
    "label": "Client",
-   "options": "Client"
+   "options": "Income Tax Client"
   },
   {
    "fieldname": "response_generation_section",
@@ -148,7 +148,7 @@
    "link_fieldname": "doc_name"
   }
  ],
- "modified": "2025-02-27 15:06:56.512967",
+ "modified": "2025-03-03 16:15:52.441138",
  "modified_by": "Administrator",
  "module": "Fin Buddy",
  "name": "Response to Outstanding Demand",
