@@ -17,7 +17,10 @@
   "frequency_penalty",
   "e_proceeding_section",
   "give_response_without_notice",
-  "mapping_content"
+  "mapping_content",
+  "tab_break_yby8",
+  "masking_rules_section",
+  "masking_rules"
  ],
  "fields": [
   {
@@ -93,6 +96,7 @@
    "label": "Mapping Content"
   },
   {
+<<<<<<< Updated upstream
    "fieldname": "env",
    "fieldtype": "Select",
    "label": "Env",
@@ -101,12 +105,32 @@
   {
    "fieldname": "section_break_hsvs",
    "fieldtype": "Section Break"
+=======
+   "fieldname": "tab_break_yby8",
+   "fieldtype": "Tab Break",
+   "label": "Data Masking"
+  },
+  {
+   "fieldname": "masking_rules_section",
+   "fieldtype": "Section Break",
+   "label": "Masking Rules"
+  },
+  {
+   "fieldname": "masking_rules",
+   "fieldtype": "Table",
+   "label": "Masking Rules",
+   "options": "Masking Rules"
+>>>>>>> Stashed changes
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
+<<<<<<< Updated upstream
  "modified": "2025-03-03 15:39:22.738252",
+=======
+ "modified": "2025-03-03 12:29:04.849668",
+>>>>>>> Stashed changes
  "modified_by": "Administrator",
  "module": "Fin Buddy",
  "name": "FinBuddy Settings",
