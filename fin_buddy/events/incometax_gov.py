@@ -28,14 +28,19 @@ from typing import Dict, Any, Optional
 # from fin_buddy.events.ContentMaking import ContentMasker
 from fin_buddy.events.DataMakingUtil import DataMaskingUtil
 import fin_buddy.utils.dates as MakeDateValid
+import tempfile
+
 
 def setup_chrome_options(user_download_dir):
     """Setup Chrome options with the specified download directory"""
-
+    
+    # Create a unique temporary directory for user data
+    unique_user_data_dir = os.path.join(tempfile.gettempdir(), f"chrome_user_data_{os.getpid()}")
+    
     options = Options()
     options.add_argument("user-agent=Mozilla/5.0 (Windows NT 20.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
     options.add_argument("--start-maximized")
-    # options.add_argument("--incognito")  # Use incognito mode for guest session
+    options.add_argument(f"--user-data-dir={unique_user_data_dir}") 
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_experimental_option("useAutomationExtension", False)
     options.add_experimental_option('excludeSwitches', ['enable-automation'])
@@ -45,16 +50,11 @@ def setup_chrome_options(user_download_dir):
         "download.prompt_for_download": False,
         "download.directory_upgrade": True,
         "safebrowsing.enabled": True,
-        # Disable the download prompt
         "profile.default_content_setting_values.automatic_downloads": 1,
-        # Allow multiple downloads
         "profile.content_settings.exceptions.automatic_downloads.*.setting": 1,
-        # Disable the PDF viewer
         "plugins.always_open_pdf_externally": True,
-        # Disable save password prompt
         "credentials_enable_service": False,
         "profile.password_manager_enabled": False,
-        # Disable multiple download warning
         "profile.block_third_party_cookies": False,
         "profile.default_content_settings.popups": 0,
         "profile.default_content_setting_values.notifications": 2
@@ -62,7 +62,6 @@ def setup_chrome_options(user_download_dir):
     options.add_experimental_option("prefs", prefs)
     
     return options
-
 def setup_driver(username=None, site_name="default_site"):
     user_download_dir = None
     if username:
