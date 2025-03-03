@@ -111,9 +111,11 @@ def get_or_create_gst_client_document(client_name):
         return None
 
 
-
 def login_user(driver, username, password):
-    """Login to GST portal"""
+    """
+    Start the login process and capture the captcha.
+    Returns the captcha image path and maintains the session.
+    """
     try:
         wait = WebDriverWait(driver, 20)
         driver.get("https://services.gst.gov.in/services/login")
@@ -133,20 +135,57 @@ def login_user(driver, username, password):
         password_field.clear()
         password_field.send_keys(password)
 
+        # Find the captcha element
+        captcha_element = wait.until(
+            EC.visibility_of_element_located((By.ID, "imgCaptcha"))
+        )
+        
+        # Take a screenshot of the captcha element
+        captcha_image_path = os.path.join(frappe.get_site_path('public', 'files'), f'captcha_{username}_{int(time.time())}.png')
+        captcha_element.screenshot(captcha_image_path)
+        
+        # Return the relative path to be used in the frontend
+        relative_path = os.path.basename(captcha_image_path)
+        return {
+            "status": "captcha_needed",
+            "captcha_path": f"/files/{relative_path}"
+        }
+
+    except Exception as e:
+        print(f"Login preparation failed for user {username}: {str(e)}")
+        return {"status": "error", "message": str(e)}
+    
+
+
+def complete_login(driver, captcha_text):
+    """Complete the login process with the provided captcha"""
+    try:
+        wait = WebDriverWait(driver, 20)
+        
+        # Enter captcha
+        captcha_field = wait.until(
+            EC.visibility_of_element_located((By.ID, "captcha"))
+        )
+        captcha_field.clear()
+        captcha_field.send_keys(captcha_text)
+
         # Click Login Button
         login_btn = wait.until(
             EC.visibility_of_element_located((By.CSS_SELECTOR, "button.btn-primary"))
         )
-        # time.sleep(2)
         login_btn.send_keys(Keys.RETURN)
 
         # Wait for login to complete
         time.sleep(17)
+        
+        # You can add additional checks here to verify login success
+        
         return True
 
     except Exception as e:
-        print(f"Login failed for user {username}: {str(e)}")
+        print(f"Login completion failed: {str(e)}")
         return False
+
 
 
 def navigate_to_notices_old(driver):
@@ -563,7 +602,7 @@ def save_to_excel(notices_data, user_download_dir):
     return False
 
 
-def extract_gst_additional_notice_data(driver):
+def extract_gst_additional_notice_data_old(driver):
     try:
         driver.execute_script("document.body.scrollTop = 0; document.documentElement.scrollTop = 0;")
 
@@ -617,6 +656,386 @@ def extract_gst_additional_notice_data(driver):
         print(f"An error occurred: {str(e)}")
     
 
+def extract_notice_details(driver):
+    detail_info = {}
+    try:
+        # Extract all tables on the page
+        tables = driver.find_elements(By.TAG_NAME, "table")
+        
+        for table in tables:
+            # Scroll to make the table visible
+            driver.execute_script("arguments[0].scrollIntoView(true);", table)
+            time.sleep(1)
+            
+            # Extract rows from the table
+            rows = table.find_elements(By.TAG_NAME, "tr")
+            for row in rows:
+                cells = row.find_elements(By.TAG_NAME, "td")
+                if len(cells) >= 2:
+                    # First cell is header, second is value
+                    header = cells[0].text.strip()
+                    value = cells[1].text.strip()
+                    if header and not header.startswith("Sr."):  # Skip numbered rows
+                        detail_info[header] = value
+        
+        # Look for specific sections or elements
+        try:
+            # Case ID
+            case_id_elem = driver.find_element(By.XPATH, "//div[contains(text(), 'Case ID')]/following-sibling::div")
+            if case_id_elem:
+                detail_info["Case ID"] = case_id_elem.text.strip()
+                
+            # GSTIN/UIN
+            gstin_elem = driver.find_element(By.XPATH, "//div[contains(text(), 'GSTIN/UIN')]/following-sibling::div")
+            if gstin_elem:
+                detail_info["GSTIN/UIN"] = gstin_elem.text.strip()
+                
+            # Status
+            status_elem = driver.find_element(By.XPATH, "//div[contains(text(), 'Status')]/following-sibling::div")
+            if status_elem:
+                detail_info["Status"] = status_elem.text.strip()
+        except:
+            pass
+            
+        return detail_info
+        
+    except Exception as e:
+        print(f"Error extracting notice details: {str(e)}")
+        return detail_info
+    
+
+
+# def get_latest_download_path():
+#     """Get the most recently downloaded file path"""
+#     download_dir = "Your download directory path"
+#     files = glob.glob(os.path.join(download_dir, "*"))
+#     return max(files, key=os.path.getctime)
+
+def upload_file(file_path):
+    """Upload a file to Frappe and return file URL"""
+    file_url = frappe.get_doc({
+        "doctype": "File",
+        "file_name": os.path.basename(file_path),
+        "content": open(file_path, "rb").read()
+    }).insert().file_url
+    return file_url
+
+def extract_and_save_case_data(driver, downloaded_file_path):
+    # First, get the case details from the header section
+    case_id = driver.find_element(By.XPATH, "//div[contains(@class, 'panel-body')]//span[text()='Case ID']/following-sibling::p/b").text
+    gstin = driver.find_element(By.XPATH, "//div[contains(@class, 'panel-body')]//span[text()='GSTIN/UIN/Temporary ID']/following-sibling::p/b").text
+    case_creation_date = driver.find_element(By.XPATH, "//div[contains(@class, 'panel-body')]//span[text()='Date Of Application/Case Creation']/following-sibling::p/b").text
+    status = driver.find_element(By.XPATH, "//div[contains(@class, 'panel-body')]//span[text()='Status']/following-sibling::p/b").text
+
+
+    print("Case ID", case_id, gstin, case_creation_date, status)
+    
+    # Create a new Case Details document
+    case_details = frappe.new_doc("Case Details")
+    case_details.case_id = case_id
+    case_details.gstin = gstin
+    case_details.case_creation_date = case_creation_date
+    case_details.status = status
+    
+    # Now get the table rows
+    rows = driver.find_elements(By.XPATH, "//tbody/tr")
+    
+    for row in rows:
+        # Extract data from each row
+        reply_type = row.find_element(By.XPATH, ".//td[1]/span").text
+        reply_filed_against = row.find_element(By.XPATH, ".//td[2]/span").text
+        reply_date = row.find_element(By.XPATH, ".//td[3]/span").text
+        personal_hearing = row.find_element(By.XPATH, ".//td[4]/span").text
+        
+        # Create a new Reply document
+        reply = frappe.new_doc("Case Details Reply")
+        reply.reply_type = reply_type
+        reply.reply_filed_against = reply_filed_against
+        reply.reply_date = reply_date
+        reply.personal_hearing = personal_hearing
+        
+        # Generate a unique reply_id
+        # reply.reply_id = f"{reply_filed_against}_{reply_date.replace('/', '')}"
+        
+        # Save the reply
+        reply.save()
+        frappe.db.commit()
+        
+        # Now find all attachment links in this row
+        attachment_links = row.find_elements(By.XPATH, ".//td[5]//a[@download-doc-secure]")
+        
+        for link in attachment_links:
+            
+            # Get the file name
+            file_name = link.find_element(By.XPATH, ".//span[@title='Attachments']").text
+            
+            # Click to download
+            driver.execute_script("arguments[0].click();", link)
+            time.sleep(3)  # Wait for download
+
+            file_path = find_latest_download(downloaded_file_path)
+            if file_path:
+                response = attach_file_in_reply(reply, file_path)
+            # Now find the downloaded file path
+            # downloaded_file_path = get_latest_download_path()  # You'll need to implement this function
+            
+            # Upload the file to Frappe
+            # file_doc = frappe.get_doc({
+            #     "doctype": "File",
+            #     "file_name": file_name,
+            #     "attached_to_doctype": "Case Details Reply",
+            #     "attached_to_name": reply.name,
+            #     "file_url": upload_file(downloaded_file_path)  # You'll need to implement this function
+            # }).insert()
+            
+            # # Add to attachment child table
+            # reply.append("attachments", {
+            #     "file": file_doc.file_url
+            # })
+        
+        # Save reply again with attachments
+        # reply.save()
+        
+        # Add to case details child table
+        case_details.append("replies", {
+            "reply_id": reply.name
+        })
+        
+    # Save the case details document
+    case_details.save()
+    frappe.db.commit()
+    return case_details.name
+
+def attach_file_in_reply(reply, file_path):
+
+            # Upload the file to Frappe
+    # file_doc = frappe.get_doc({
+    #             "doctype": "File",
+    #             "file_name": file_name,
+    #             "attached_to_doctype": "Case Details Reply",
+    #             "attached_to_name": reply.name,
+    #             "file_url": upload_file(downloaded_file_path)  # You'll need to implement this function
+    #         }).insert()
+    
+
+
+    """Create File document and attach to GST Notice."""
+    try:
+        # First, create a new GST Notice Reply
+        child_notice_doc = frappe.get_doc({
+            "doctype": "Attachment Item",
+            "parent": reply.name,
+            "parenttype": "Case Details Reply",
+            "parentfield": "attachments",
+        })
+        child_notice_doc.insert()
+        
+        # Read file content
+        with open(file_path, "rb") as f:
+            content = f.read()
+        
+        file_name = os.path.basename(file_path)
+        # Create File document
+        file_doc = frappe.get_doc({
+            "doctype": "File",
+            "file_name": file_name,
+            "attached_to_doctype": "Attachment Item",
+            "attached_to_field": "file",
+            "attached_to_name": child_notice_doc.name,  # Added this line
+            "is_private": 1,
+            "content": content
+        })
+        
+        new_doc = file_doc.insert()
+        
+        # Update the reply with the file URL
+        child_notice_doc.file = new_doc.file_url
+        child_notice_doc.save()
+        frappe.db.commit()
+        
+        return True, f"Successfully added file"
+        
+    except Exception as e:
+        frappe.db.rollback()
+        return False, f"Failed to create and attach file: {str(e)}"
+
+
+
+
+def extract_gst_additional_notice_data(driver, user_download_dir):
+    try:
+        # Make sure we're starting from the top of the page
+        driver.execute_script("document.body.scrollTop = 0; document.documentElement.scrollTop = 0;")
+        time.sleep(1)
+
+        # Wait for and click on Additional Notices and Orders link
+        additional_notices = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.XPATH, "//a[contains(text(), 'Additional Notices and Orders')]"))
+        )
+        additional_notices.click()
+        
+        # Wait for table to load
+        time.sleep(2)
+        
+        # Extract basic table data first
+        notices_data = []
+        wait = WebDriverWait(driver, 10)
+        
+        # Find all rows in the table
+        rows = driver.find_elements(By.XPATH, "//table[@class='table tbl inv table-bordered text-center ng-table']//tbody//tr")
+        print(f"Found {len(rows)} notices")
+        
+        # First pass: Extract basic data from the table
+        for i, row in enumerate(rows):
+            cols = row.find_elements(By.TAG_NAME, "td")
+            
+            notice_type = cols[0].find_element(By.TAG_NAME, "span").text
+            description = cols[1].find_element(By.TAG_NAME, "span").text
+            ref_id = cols[2].find_element(By.TAG_NAME, "span").text
+            date = cols[3].find_element(By.TAG_NAME, "span").text
+            
+            # Store the basic data
+            notice_data = {
+                'Type of Notice/Order': notice_type,
+                'Description': description,
+                'Ref ID': ref_id,
+                'Date of Issuance': date,
+                # 'Detail Info': {},
+                # 'Attachments': []
+            }
+            
+            notices_data.append(notice_data)
+        
+        # Save the initial data to Excel as a backup
+        temp_df = pd.DataFrame(notices_data)
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        temp_excel_path = os.path.join(user_download_dir, f"notices_basic_data_{timestamp}.xlsx")
+        temp_df.to_excel(temp_excel_path, index=False)
+        print(f"Basic data saved to {temp_excel_path}")
+        
+        # Second pass: Click each View button and extract detailed info
+        for i in range(len(rows)):
+            try:
+                # Re-fetch the rows as they might become stale
+                rows = driver.find_elements(By.XPATH, "//table[@class='table tbl inv table-bordered text-center ng-table']//tbody//tr")
+                row = rows[i]
+                
+                # Find View button in the last column
+                view_button = row.find_elements(By.TAG_NAME, "td")[-1].find_element(By.TAG_NAME, "a")
+                
+                if view_button.text == "View":
+                    print(f"Clicking View for notice {i+1}/{len(rows)}: {notices_data[i]['Ref ID']}")
+                    
+                    # Scroll to and click the View button
+                    # driver.execute_script("arguments[0].scrollIntoView(true);", view_button)
+                    time.sleep(1)
+                    try:
+                        driver.execute_script("arguments[0].click();", view_button)
+                    except:
+                        view_button.click()
+                    
+                    # Wait for the details page to load
+                    time.sleep(2)
+                    
+                    # Extract details from the new page
+                    detail_info = extract_notice_details(driver)
+                    notices_data[i]['Detail Info'] = detail_info
+                    
+                    # Download any attachments
+                    attachments = download_attachments(driver, user_download_dir, notices_data[i]['Ref ID'])
+                    notices_data[i]['Attachments'] = attachments
+                    
+                    # Navigate back to the notices list using the Additional Notices and Orders link
+                    try:
+                        # Find and click on the Dashboard link first (to navigate up in the hierarchy)
+                        # dashboard_link = WebDriverWait(driver, 5).until(
+                        #     EC.element_to_be_clickable((By.XPATH, "//a[contains(text(), 'Dashboard')]"))
+                        # )
+                        # dashboard_link.click()
+                        # time.sleep(2)
+                        
+                        # Now click on "Additional Notices and Orders" link to get back to the list
+                        additional_notices_link = WebDriverWait(driver, 5).until(
+                            EC.element_to_be_clickable((By.XPATH, "//a[contains(text(), 'Additional Notices and Orders')]"))
+                        )
+                        additional_notices_link.click()
+                        time.sleep(2)
+                    except Exception as nav_error:
+                        print(f"Navigation error: {str(nav_error)}")
+                        # Fallback: go directly to the notices page
+                        driver.get("https://services.gst.gov.in/services/auth/notices")
+                        time.sleep(3)
+                        additional_notices = WebDriverWait(driver, 10).until(
+                            EC.element_to_be_clickable((By.XPATH, "//a[contains(text(), 'Additional Notices and Orders')]"))
+                        )
+                        additional_notices.click()
+                        time.sleep(2)
+                    
+            except Exception as e:
+                print(f"Error processing notice {i+1}: {str(e)}")
+                # Try to get back to the notices list if there was an error
+                try:
+                    driver.get("https://services.gst.gov.in/services/auth/notices")
+                    time.sleep(3)
+                    additional_notices = WebDriverWait(driver, 10).until(
+                        EC.element_to_be_clickable((By.XPATH, "//a[contains(text(), 'Additional Notices and Orders')]"))
+                    )
+                    additional_notices.click()
+                    time.sleep(2)
+                except:
+                    print("Failed to recover from error")
+        
+        return notices_data
+        
+    except Exception as e:
+        print(f"An error occurred during notice extraction: {str(e)}")
+        return []
+
+
+def download_attachments(driver, user_download_dir, ref_id):
+    attachments = []
+    try:
+        table = driver.find_element(By.CSS_SELECTOR, ".table-responsive")  # Replace with your table's selector
+
+        # Scroll the table to the right
+        driver.execute_script("arguments[0].scrollLeft += 500;", table)
+        
+        # Check if there are attachments in the table
+        attachment_cells = driver.find_elements(By.XPATH, "//div[@class='list-group']/a")
+
+        print("attachments_cells", len(attachment_cells))
+
+        
+        if attachment_cells:
+            for cell in attachment_cells:
+                driver.execute_script("arguments[0].click();", cell)
+
+                time.sleep(5)
+                attachment_links = driver.find_elements(By.XPATH, "//span[@title='Attachments']/p/a")
+                if len(attachment_links) <= 0:
+                    # attachment_links = driver.find_elements(By.XPATH, "//a[@download-doc-secure and .//span[@title='Attachments']]")
+                    case_details_name = extract_and_save_case_data(driver, user_download_dir)
+
+
+                print("attachments_links", len(attachment_links))
+
+                # Click on each attachment link
+                for link in attachment_links:
+                    driver.execute_script("arguments[0].click();", link)
+                    time.sleep(3)
+                
+                # driver.execute_script("arguments[0].scrollLeft -= 500;", table)
+
+        
+        return attachments
+        
+    except Exception as e:
+        print(f"Error processing attachments: {str(e)}")
+        return attachments
+
+
+
+
 def process_gst_notices(client_name, username, password):
     """Main function to process GST notices"""
     driver = None
@@ -635,17 +1054,17 @@ def process_gst_notices(client_name, username, password):
             return
         
         # Extract notice data
-        notices_data = extract_notice_data(driver, user_download_dir, client_name)
-        if not notices_data:
-            print("DONE for gst notices table")
-            # Save to Excel
-            # save_to_excel(notices_data, user_download_dir)
-            # save_to_gst_client_document(notices_data, )
-        else:
-            print("No notice data extracted.")
+        # notices_data = extract_notice_data(driver, user_download_dir, client_name)
+        # if not notices_data:
+        #     print("DONE for gst notices table")
+        #     # Save to Excel
+        #     # save_to_excel(notices_data, user_download_dir)
+        #     # save_to_gst_client_document(notices_data, )
+        # else:
+        #     print("No notice data extracted.")
 
         # Extract additional notice data
-        add_notices_data = extract_gst_additional_notice_data(driver)
+        add_notices_data = extract_gst_additional_notice_data(driver, user_download_dir)
         if add_notices_data:
             # Save to Excel
             create_gst_additional_notice_table(client_name, add_notices_data)
@@ -837,6 +1256,67 @@ def login(client_name):
         frappe.log_error("Login Error In Client", str(e))
 
 
+
+
+@frappe.whitelist()
+def process_gst_client_login(client_name):
+    """Start GST client login process and get captcha"""
+    try:
+        # Get the client document
+        doc = frappe.get_doc("GST Client", client_name)
+        
+        # Get credentials
+        username = doc.gst_username
+        password = doc.get_password("gst_password")
+        
+        if not username or not password:
+            return {"status": "error", "message": f"Missing credentials for client {client_name}"}
+        
+        # Setup driver
+        driver, user_download_dir = setup_driver(username, "gst")
+        
+        # Start login and get captcha
+        login_result = login_user(driver, username, password)
+        
+        if login_result["status"] == "captcha_needed":
+            # Store the driver in a cache for later use
+            session_id = frappe.generate_hash()
+            
+            # We need to store the driver object in a way it can be retrieved later
+            # This is a simplified approach - you might need a more robust solution
+            frappe.cache().set_value(
+                f"gst_login_driver:{session_id}", 
+                {
+                    "driver_id": id(driver),  # Just for reference, not actually usable
+                    "username": username,
+                    "client_name": client_name,
+                    "download_dir": user_download_dir
+                },
+                expires_in_sec=300  # 5 minutes
+            )
+            
+            # Store the driver object in a global variable or another cache
+            # This is not ideal but works for this example
+            if not hasattr(frappe, "gst_drivers"):
+                frappe.gst_drivers = {}
+            frappe.gst_drivers[session_id] = driver
+            
+            return {
+                "status": "captcha_needed",
+                "session_id": session_id,
+                "captcha_url": login_result["captcha_path"],
+                "client_name": client_name
+            }
+        else:
+            # Handle error case
+            if driver:
+                driver.quit()
+            return login_result
+            
+    except Exception as e:
+        error_msg = f"Error starting login process for {client_name}: {str(e)}"
+        frappe.log_error(error_msg, "GST Portal Login Error")
+        return {"status": "error", "message": error_msg}
 # def main():
 #     try:
 #         # Replace with actual credentials
@@ -854,3 +1334,73 @@ def login(client_name):
 
 # if __name__ == "__main__":
 #     main()
+
+
+@frappe.whitelist()
+def submit_gst_captcha(session_id, captcha_text):
+    """Complete the GST login with the provided captcha"""
+    try:
+        # Retrieve session info
+        session_info = frappe.cache().get_value(f"gst_login_driver:{session_id}")
+        if not session_info:
+            return {"status": "error", "message": "Session expired. Please try again."}
+        
+        # Retrieve the driver from cache
+        if not hasattr(frappe, "gst_drivers") or session_id not in frappe.gst_drivers:
+            return {"status": "error", "message": "Driver session lost. Please try again."}
+        
+        driver = frappe.gst_drivers[session_id]
+        client_name = session_info["client_name"]
+        username = session_info["username"]
+        user_download_dir = session_info["download_dir"]
+        
+        # Complete the login
+        if complete_login(driver, captcha_text):
+            # Login successful, now process the client
+            try:
+                # Continue with your existing process flow
+                if navigate_to_notices(driver):
+                    # Extract notice data
+                    notices_data = extract_notice_data(driver, user_download_dir, client_name)
+                    if not notices_data:
+                        print("DONE for gst notices table")
+                        # Save to Excel
+                        # save_to_excel(notices_data, user_download_dir)
+                        # save_to_gst_client_document(notices_data, )
+                    else:
+                        print("No notice data extracted.")
+
+
+                    add_notices_data = extract_gst_additional_notice_data(driver, user_download_dir)
+                    if add_notices_data:
+                        create_gst_additional_notice_table(client_name, add_notices_data)
+                        
+                # Logout
+                logout_user(driver)
+                
+                # Update client document
+                doc = frappe.get_doc("GST Client", client_name)
+                doc.last_gst_sync = datetime.now()
+                doc.save()
+                frappe.db.commit()
+                
+                return {"status": "success", "message": "Processing completed successfully"}
+            except Exception as e:
+                error_msg = f"Error processing client {client_name} after login: {str(e)}"
+                frappe.log_error(error_msg, "GST Portal Processing Error")
+                return {"status": "error", "message": error_msg}
+            finally:
+                # Clean up
+                if driver:
+                    driver.quit()
+                # Remove from cache
+                if hasattr(frappe, "gst_drivers") and session_id in frappe.gst_drivers:
+                    del frappe.gst_drivers[session_id]
+                frappe.cache().delete_value(f"gst_login_driver:{session_id}")
+        else:
+            return {"status": "error", "message": "Login failed. Invalid captcha or other login error."}
+            
+    except Exception as e:
+        error_msg = f"Error submitting captcha: {str(e)}"
+        frappe.log_error(error_msg, "GST Portal Captcha Error")
+        return {"status": "error", "message": error_msg}
