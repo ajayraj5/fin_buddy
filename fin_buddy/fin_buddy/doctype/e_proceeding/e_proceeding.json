@@ -1,5 +1,6 @@
 {
  "actions": [],
+ "allow_import": 1,
  "allow_rename": 1,
  "autoname": "format:{proceeding_name}-{#####}",
  "creation": "2025-02-17 16:50:27.315442",
@@ -218,7 +219,7 @@
    "link_fieldname": "doc_name"
   }
  ],
- "modified": "2025-03-03 16:16:10.797444",
+ "modified": "2025-03-04 12:43:25.938786",
  "modified_by": "Administrator",
  "module": "Fin Buddy",
  "name": "E Proceeding",
