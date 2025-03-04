@@ -2,6 +2,7 @@ import frappe
 import wrapt
 from bs4 import BeautifulSoup
 from frappe.query_builder import Order
+from frappe.utils import getdate
 
 
 def gen_response(status, message, data=[]):
@@ -30,24 +31,78 @@ def income_tax_client_list(
     page_length=20,
 ):
     args = frappe.local.form_dict
-    doctype = "Income Tax Client"
-    itc = frappe.qb.DocType(doctype)
+    search_query = args.get("search_query", "").strip().lower()
+    filters = []
 
-    # base_condition = (
-    #     (itc.docstatus == 1)
-    # )
+    doctype = "Income Tax Client"
+
+    if search_query:
+        date_parts = search_query.split(" to ")
+
+        if len(date_parts) == 2:
+            try:
+                from_date = getdate(date_parts[0].strip())
+                to_date = getdate(date_parts[1].strip())
+                filters.append(
+                    [
+                        doctype,
+                        "creation",
+                        "Between",
+                        [from_date, to_date],
+                    ]
+                )
+            except ValueError:
+                return gen_response(
+                    400,
+                    "Invalid date range format. Please use 'YYYY-MM-DD to YYYY-MM-DD'.",
+                )
+        else:
+            if frappe.db.get_value(
+                doctype, {"name": ["like", f"%{search_query}%"]}, "name"
+            ):
+                filters.append([doctype, "name", "like", f"%{search_query}%"])
+
+            if frappe.db.get_value(
+                doctype, {"username": ["like", f"%{search_query}%"]}, "name"
+            ):
+                filters.append([doctype, "username", "like", f"%{search_query}%"])
+
+            if frappe.db.get_value(
+                doctype, {"client_name": ["like", f"%{search_query}%"]}, "name"
+            ):
+                filters.append(
+                    [doctype, "client_name", "like", f"%{search_query}%"],
+                )
+
+    itc = frappe.qb.DocType(doctype)
 
     query = (
         frappe.qb.from_(itc)
         .select(
-            itc.name,
-            itc.itc_date,
-            itc.custom_deficit_hours,
-            itc.in_time,
-            itc.out_time,
-            itc.working_hours,
+            itc.name.as_("id"),
+            itc.client_name,
+            itc.dob,
+            itc.username,
+            itc.password,
+            itc.last_income_tax_sync,
+            itc.disabled,
+            itc.creation,
+            itc.modified,
+            itc.owner,
+            itc.modified_by,
         )
         .orderby(itc.creation, order=Order.asc)
+        .limit(page_length)
+        .offset(start)
     )
 
-    results = query.run(as_dict=True)
+    records = query.run(as_dict=True)
+
+    return gen_response(
+        200,
+        "Income tax client list fetched successfully",
+        dict(
+            total_records=len(records),
+            records=records,
+        ),
+    )
