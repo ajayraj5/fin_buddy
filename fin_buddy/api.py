@@ -2,7 +2,7 @@ import frappe
 import wrapt
 from bs4 import BeautifulSoup
 from frappe.query_builder import Order
-from frappe.utils import getdate
+from frappe.utils import getdate, cstr
 
 
 def gen_response(status, message, data=[]):
@@ -54,7 +54,8 @@ def income_tax_client_list(
             except ValueError:
                 return gen_response(
                     400,
-                    "Invalid date range format. Please use 'YYYY-MM-DD to YYYY-MM-DD'.",
+                    "Invalid date range format. \
+Please use 'YYYY-MM-DD to YYYY-MM-DD'.",
                 )
         else:
             if frappe.db.get_value(
@@ -65,7 +66,14 @@ def income_tax_client_list(
             if frappe.db.get_value(
                 doctype, {"username": ["like", f"%{search_query}%"]}, "name"
             ):
-                filters.append([doctype, "username", "like", f"%{search_query}%"])
+                filters.append(
+                    [
+                        doctype,
+                        "username",
+                        "like",
+                        f"%{search_query}%",
+                    ]
+                )
 
             if frappe.db.get_value(
                 doctype, {"client_name": ["like", f"%{search_query}%"]}, "name"
@@ -101,8 +109,50 @@ def income_tax_client_list(
     return gen_response(
         200,
         "Income tax client list fetched successfully",
-        dict(
+        data=dict(
             total_records=len(records),
             records=records,
         ),
     )
+
+
+@frappe.whitelist()
+@method_validate(["POST"])
+def create_income_tax_client():
+    args = frappe.local.form_dict
+    doctype = "Income Tax Client"
+
+    client_name = args.get("client_name")
+    dob = args.get("dob")
+    username = args.get("username")
+    password = args.get("password")
+
+    if not all([client_name, username, password]):
+        return gen_response(
+            400,
+            "Client Name, Username & Password is required!",
+        )
+
+    try:
+        record = frappe.get_doc(
+            {
+                "doctype": doctype,
+                "client_name": client_name,
+                "username": username,
+                "password": password,
+                "dob": dob,
+            }
+        )
+
+        record.insert()
+        frappe.db.commit()
+        return gen_response(
+            200,
+            "Income tax client created successfully",
+            data=record.as_dict(),
+        )
+    except Exception as ex:
+        return gen_response(
+            500,
+            cstr(ex),
+        )
