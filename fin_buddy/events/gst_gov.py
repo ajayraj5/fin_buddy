@@ -1603,44 +1603,132 @@ def login_user(driver, username, password):
         return {"status": "error", "message": str(e)}
 
 
-# Add a cleanup function to be run periodically
+
+# We'll keep the cleanup function but modify it to use DocTypes
 def cleanup_stale_gst_sessions():
     """Clean up any stale GST sessions to prevent memory leaks"""
     try:
-        if hasattr(frappe.local, "gst_drivers"):
-            current_time = time.time()
-            sessions_to_remove = []
-            
-            for session_id, driver in frappe.local.gst_drivers.items():
-                # Check if session is still valid
-                heartbeat = frappe.cache().get_value(f"gst_session_heartbeat:{session_id}")
-                
-                if not heartbeat or (current_time - heartbeat > 600):  # 10 minutes
-                    # Session expired, clean up
+        # Find expired sessions in the database
+        cutoff_time = time.time() - 600  # 10 minutes ago
+        expired_sessions = frappe.get_all(
+            "GST Session",
+            filters={"last_heartbeat": ["<", cutoff_time], "status": "Active"},
+            fields=["name"]
+        )
+        
+        # Update the status and perform cleanup
+        for session in expired_sessions:
+            try:
+                session_doc = frappe.get_doc("GST Session", session.name)
+                # If driver exists in this process, quit it
+                if hasattr(frappe, "_persistent_gst_drivers") and session_doc.name in frappe._persistent_gst_drivers:
                     try:
+                        driver = frappe._persistent_gst_drivers[session_doc.name]
                         driver.quit()
                     except Exception:
                         pass  # Ignore errors during driver cleanup
                     
-                    sessions_to_remove.append(session_id)
-            
-            # Remove expired sessions
-            for session_id in sessions_to_remove:
-                del frappe.local.gst_drivers[session_id]
-                frappe.cache().delete_value(f"gst_login_session:{session_id}")
-                frappe.cache().delete_value(f"gst_session_heartbeat:{session_id}")
+                    # Remove from local registry
+                    del frappe._persistent_gst_drivers[session_doc.name]
+                
+                # Update session status
+                session_doc.status = "Expired"
+                session_doc.save()
+            except Exception as e:
+                frappe.log_error(f"Error cleaning up GST session {session.name}: {str(e)}", "GST Session Cleanup Error")
     except Exception as e:
         frappe.log_error(f"Error cleaning up GST sessions: {str(e)}", "GST Session Cleanup Error")
 
-
-# Register cleanup task
-# You can call this in hooks.py to run periodically
-# e.g., in hooks.py: scheduler_events = { "hourly": ["fin_buddy.events.gst_gov.cleanup_stale_gst_sessions"] }
-
-# Create a persistent global registry for drivers
+# Create a persistent global registry for drivers (we'll still need this for the current process)
 if not hasattr(frappe, "_persistent_gst_drivers"):
     frappe._persistent_gst_drivers = {}
 
+@frappe.whitelist()
+def check_session_status(session_id):
+    """Check if a session is still valid"""
+    try:
+        # Check if session exists in database
+        if not frappe.db.exists("GST Session", {"session_id": session_id, "status": "Active"}):
+            return {"status": "error", "valid": False, "message": "Session expired or not found"}
+        
+        # Update heartbeat
+        session_doc = frappe.get_doc("GST Session", {"session_id": session_id})
+        session_doc.last_heartbeat = time.time()
+        session_doc.save()
+        
+        # Check if driver exists in registry for this process
+        if session_id not in frappe._persistent_gst_drivers:
+            # Driver is in another process/worker
+            return {
+                "status": "warning", 
+                "valid": True, 
+                "cross_process": True,
+                "message": "Session is valid but driver is in another process. You may need to restart the process."
+            }
+        
+        return {"status": "success", "valid": True}
+    except Exception as e:
+        return {"status": "error", "valid": False, "message": str(e)}
+
+
+
+
+import time
+import os
+import frappe
+from frappe import _
+import pickle
+import base64
+
+# Add a function to serialize driver's page source and cookies
+def serialize_session_state(driver):
+    """Serialize the current driver state (page source and cookies)"""
+    try:
+        cookies = driver.get_cookies()
+        page_source = driver.page_source
+        current_url = driver.current_url
+        
+        state = {
+            "cookies": cookies,
+            "page_source": page_source,
+            "current_url": current_url
+        }
+        
+        # Serialize and encode
+        serialized = pickle.dumps(state)
+        encoded = base64.b64encode(serialized).decode('utf-8')
+        
+        return encoded
+    except Exception as e:
+        frappe.log_error(f"Error serializing session state: {str(e)}", "GST Session Error")
+        return None
+
+# Add a function to restore driver state
+def restore_session_state(driver, serialized_state):
+    """Restore driver state from serialized data"""
+    try:
+        # Decode and deserialize
+        decoded = base64.b64decode(serialized_state)
+        state = pickle.loads(decoded)
+        
+        # Clear cookies first
+        driver.delete_all_cookies()
+        
+        # Add saved cookies
+        for cookie in state["cookies"]:
+            # Some cookies can't be set directly
+            try:
+                driver.add_cookie(cookie)
+            except Exception as e:
+                frappe.log_error(f"Error adding cookie {cookie}: {str(e)}", "GST Session Cookie Error")
+        
+        # Navigate to the saved URL
+        driver.get(state["current_url"])
+        
+        return True
+    except Exception as e:
+        frappe.log_error(f"Error restoring session state: {str(e)}", "GST Session Error")
+        return False
 
 @frappe.whitelist()
 def process_gst_client_login(client_name):
@@ -1669,18 +1757,22 @@ def process_gst_client_login(client_name):
             # Store the driver in our persistent registry
             frappe._persistent_gst_drivers[session_id] = driver
             
-            # Store driver metadata in Redis cache
-            frappe.cache().set_value(
-                f"gst_session:{session_id}", 
-                {
-                    "username": username,
-                    "client_name": client_name,
-                    "download_dir": user_download_dir,
-                    "created_at": time.time(),
-                    "pid": os.getpid()  # Store the process ID
-                },
-                expires_in_sec=1200  # 20 minutes - generous timeout
-            )
+            # Serialize the driver state
+            serialized_state = serialize_session_state(driver)
+            
+            # Create a GST Session DocType
+            session_doc = frappe.new_doc("GST Session")
+            session_doc.session_id = session_id
+            session_doc.client = client_name
+            session_doc.username = username
+            session_doc.download_directory = user_download_dir
+            session_doc.created_at = frappe.utils.now()
+            session_doc.last_heartbeat = time.time()
+            session_doc.process_id = os.getpid()
+            session_doc.status = "Active"
+            session_doc.driver_state = serialized_state
+            session_doc.captcha_path = login_result["captcha_path"]
+            session_doc.insert()
             
             return {
                 "status": "captcha_needed",
@@ -1699,65 +1791,67 @@ def process_gst_client_login(client_name):
         frappe.log_error(error_msg, "GST Portal Login Error")
         return {"status": "error", "message": error_msg}
 
-
-@frappe.whitelist()
-def check_session_status(session_id):
-    """Check if a session is still valid"""
-    try:
-        # Check if session exists in Redis
-        session_info = frappe.cache().get_value(f"gst_session:{session_id}")
-        if not session_info:
-            return {"status": "error", "valid": False, "message": "Session expired or not found"}
-        
-        # Check if driver exists in registry
-        if session_id not in frappe._persistent_gst_drivers:
-            # Try to recover from another worker if possible
-            return {"status": "error", "valid": False, "message": "Driver session not found in current process"}
-        
-        return {"status": "success", "valid": True}
-    except Exception as e:
-        return {"status": "error", "valid": False, "message": str(e)}
-
-
 @frappe.whitelist()
 def submit_gst_captcha(session_id, captcha_text):
     """Complete the GST login with the provided captcha"""
     try:
-        # Check if session exists in Redis
-        session_info = frappe.cache().get_value(f"gst_session:{session_id}")
-        if not session_info:
+        # Check if session exists in database
+        if not frappe.db.exists("GST Session", {"session_id": session_id, "status": "Active"}):
             return {"status": "error", "message": "Session expired. Please try again."}
         
-        # Check if we're in the same process
-        current_pid = os.getpid()
-        session_pid = session_info.get("pid")
+        # Get session details
+        session_doc = frappe.get_doc("GST Session", {"session_id": session_id})
+        client_name = session_doc.client
+        username = session_doc.username
+        user_download_dir = session_doc.download_directory
         
-        if current_pid != session_pid:
-            frappe.log_error(
-                f"PID mismatch: current={current_pid}, session={session_pid}", 
-                "GST Session Error"
-            )
-            return {"status": "error", "message": "Session was created in a different process. Please try again with a new session."}
+        # Get or create driver
+        driver = None
+        created_new_driver = False
         
-        # Check if driver exists in registry
-        if session_id not in frappe._persistent_gst_drivers:
-            frappe.log_error(
-                f"Driver not found in registry for session {session_id}", 
-                "GST Session Error"
-            )
-            return {"status": "error", "message": "Driver session lost. Please try again with a new session."}
+        # Check if driver exists in our process
+        if session_id in frappe._persistent_gst_drivers:
+            driver = frappe._persistent_gst_drivers[session_id]
+        else:
+            # Need to recreate driver with saved state
+            created_new_driver = True
+            driver, _ = setup_driver(username, "gst")
+            
+            # If we have a saved state, restore it
+            if session_doc.driver_state:
+                success = restore_session_state(driver, session_doc.driver_state)
+                if not success:
+                    # If we couldn't restore, we need to start over
+                    driver.quit()
+                    return {
+                        "status": "error", 
+                        "message": "Could not restore session state. Please start a new session."
+                    }
+            else:
+                # No saved state, can't continue
+                driver.quit()
+                return {
+                    "status": "error", 
+                    "message": "Session state was not saved. Please start a new session."
+                }
+            
+            # Update registry with new driver
+            frappe._persistent_gst_drivers[session_id] = driver
         
-        # Get driver and session details
-        driver = frappe._persistent_gst_drivers[session_id]
-        client_name = session_info["client_name"]
-        username = session_info["username"]
-        user_download_dir = session_info["download_dir"]
+        # Update session metadata
+        session_doc.process_id = os.getpid()
+        session_doc.last_heartbeat = time.time()
+        session_doc.save()
         
         # Complete the login
         try:
             if complete_login(driver, captcha_text):
                 # Login successful, now process the client
                 try:
+                    # Update session status
+                    session_doc.status = "Processing"
+                    session_doc.save()
+                    
                     # Continue with your existing process flow
                     if navigate_to_notices(driver):
                         # Extract notice data
@@ -1774,21 +1868,41 @@ def submit_gst_captcha(session_id, captcha_text):
                     logout_user(driver)
                     
                     # Update client document
-                    doc = frappe.get_doc("GST Client", client_name)
-                    doc.last_gst_sync = frappe.utils.now()
-                    doc.save()
+                    client_doc = frappe.get_doc("GST Client", client_name)
+                    client_doc.last_gst_sync = frappe.utils.now()
+                    client_doc.save()
                     frappe.db.commit()
+                    
+                    # Update session status
+                    session_doc.status = "Completed"
+                    session_doc.save()
                     
                     return {"status": "success", "message": "Processing completed successfully"}
                 except Exception as e:
                     error_msg = f"Error processing client {client_name} after login: {str(e)}"
                     frappe.log_error(error_msg, "GST Portal Processing Error")
+                    
+                    # Update session status
+                    session_doc.status = "Failed"
+                    session_doc.error_message = str(e)
+                    session_doc.save()
+                    
                     return {"status": "error", "message": error_msg}
             else:
+                # Update session status
+                session_doc.status = "Login_Failed"
+                session_doc.save()
+                
                 return {"status": "error", "message": "Login failed. Invalid captcha or other login error."}
         except Exception as e:
             error_msg = f"Error in login completion: {str(e)}"
             frappe.log_error(error_msg, "GST Login Error")
+            
+            # Update session status
+            session_doc.status = "Error"
+            session_doc.error_message = str(e)
+            session_doc.save()
+            
             return {"status": "error", "message": error_msg}
         finally:
             # Always clean up resources
@@ -1798,11 +1912,14 @@ def submit_gst_captcha(session_id, captcha_text):
             except Exception:
                 pass  # Ignore errors during driver cleanup
                 
-            # Remove from registry and cache
+            # Remove from registry
             if session_id in frappe._persistent_gst_drivers:
                 del frappe._persistent_gst_drivers[session_id]
                 
-            frappe.cache().delete_value(f"gst_session:{session_id}")
+            # Update session status if not already set to a terminal state
+            if session_doc.status in ["Active", "Processing"]:
+                session_doc.status = "Completed"
+                session_doc.save()
             
     except Exception as e:
         error_msg = f"Error submitting captcha: {str(e)}"

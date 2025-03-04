@@ -1,0 +1,103 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-03-04 09:33:58.163702",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "session_id",
+  "client",
+  "username",
+  "download_directory",
+  "process_id",
+  "driver_state",
+  "captcha_path",
+  "status",
+  "created_at",
+  "last_heartbeat",
+  "error_message"
+ ],
+ "fields": [
+  {
+   "fieldname": "session_id",
+   "fieldtype": "Data",
+   "label": "session_id"
+  },
+  {
+   "fieldname": "client",
+   "fieldtype": "Link",
+   "label": "client",
+   "options": "GST Client"
+  },
+  {
+   "fieldname": "username",
+   "fieldtype": "Data",
+   "label": "Username"
+  },
+  {
+   "fieldname": "download_directory",
+   "fieldtype": "Data",
+   "label": "download_directory"
+  },
+  {
+   "fieldname": "process_id",
+   "fieldtype": "Data",
+   "label": "process_id"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "status",
+   "options": "Active\nProcessing\nCompleted\nExpired\nFailed\nProcess_Mismatch\nDriver_Lost\nLogin_Failed\nError"
+  },
+  {
+   "fieldname": "created_at",
+   "fieldtype": "Datetime",
+   "label": "created_at"
+  },
+  {
+   "fieldname": "last_heartbeat",
+   "fieldtype": "Float",
+   "label": "last_heartbeat"
+  },
+  {
+   "fieldname": "error_message",
+   "fieldtype": "Text",
+   "label": "error_message"
+  },
+  {
+   "fieldname": "driver_state",
+   "fieldtype": "Long Text",
+   "label": "driver_state"
+  },
+  {
+   "fieldname": "captcha_path",
+   "fieldtype": "Data",
+   "label": "captcha_path"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-03-04 09:45:07.067975",
+ "modified_by": "Administrator",
+ "module": "Fin Buddy",
+ "name": "GST Session",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
