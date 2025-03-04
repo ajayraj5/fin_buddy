@@ -1586,6 +1586,7 @@ def process_gst_client_login(client_name):
         frappe.log_error(error_msg, "GST Portal Login Error")
         return {"status": "error", "message": error_msg}
 
+
 @frappe.whitelist()
 def check_session_status(session_id):
     """Check if a session is still valid"""
@@ -1603,6 +1604,7 @@ def check_session_status(session_id):
         return {"status": "success", "valid": True}
     except Exception as e:
         return {"status": "error", "valid": False, "message": str(e)}
+
 
 @frappe.whitelist()
 def submit_gst_captcha(session_id, captcha_text):
