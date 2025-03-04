@@ -156,3 +156,45 @@ def create_income_tax_client():
             500,
             cstr(ex),
         )
+
+
+@frappe.whitelist()
+@method_validate(["POST"])
+def income_tax_client_details():
+    args = frappe.local.form_dict
+    doctype = "Income Tax Client"
+
+    record_id = args.get("id")
+    if not record_id:
+        return gen_response(400, "ID required to fetch det6ails!")
+
+    if frappe.db.exists(doctype, record_id):
+        record = frappe.db.get_values(
+            doctype,
+            record_id,
+            [
+                "name as id",
+                "client_name",
+                "dob",
+                "username",
+                "password",
+                "disabled",
+                "owner",
+                "last_income_tax_sync",
+                "modified_by",
+                "creation",
+                "modified",
+            ],
+            as_dict=True,
+        )
+
+        return gen_response(
+            200,
+            "Income tax client details fetched successfully!",
+            data=record,
+        )
+    else:
+        return gen_response(
+            404,
+            f"Income tax client not found with id {record_id}",
+        )
