@@ -1839,8 +1839,14 @@ def handle_eproceedings_submit_response(driver, client_name, notice_id):
                 # Extract container details
                 proceeding_name = container.find_element(By.XPATH, f".//span[contains(@class, 'heading5') and contains(text(), '{doc.proceeding_name}')]").text
                 assessment_year = container.find_element(By.XPATH, ".//span[contains(text(), 'Assessment Year')]/following-sibling::span").text
-                financial_year = container.find_element(By.XPATH, ".//span[contains(text(), 'Financial Year')]/following-sibling::span").text
-
+                financial_year = ""
+                try:
+                    financial_year = container.find_element(By.XPATH, ".//span[contains(text(), 'Financial Year')]/following-sibling::span").text
+                except Exception as e:
+                    # frappe.log_error("Financial Year Not Present")
+                    financial_year = ""
+                
+                # frappe.log_error("data", [proceeding_name, assessment_year, financial_year])
                 
                 # Check if this container matches our criteria
                 if (proceeding_name == doc.proceeding_name and 
