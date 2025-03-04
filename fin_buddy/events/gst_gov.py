@@ -40,11 +40,30 @@ def setup_chrome_options(user_download_dir):
     options.add_experimental_option("useAutomationExtension", False)
     options.add_experimental_option('excludeSwitches', ['enable-automation'])
 
+    # Always create a unique temporary directory for user data regardless of environment
+    # Include timestamp to ensure uniqueness between runs
+    import time
+    timestamp = int(time.time())
+    unique_user_data_dir = os.path.join(tempfile.gettempdir(), f"chrome_user_data_{os.getpid()}_{timestamp}")
+    options.add_argument(f"--user-data-dir={unique_user_data_dir}")
+    
+    # Clean up any existing user data directories that might be causing conflicts
+    try:
+        import glob
+        old_dirs = glob.glob(os.path.join(tempfile.gettempdir(), "chrome_user_data_*"))
+        for old_dir in old_dirs:
+            # Only delete directories older than 24 hours to avoid conflicts with running processes
+            if os.path.isdir(old_dir) and os.path.getmtime(old_dir) < time.time() - 86400:
+                import shutil
+                try:
+                    shutil.rmtree(old_dir, ignore_errors=True)
+                except Exception:
+                    pass  # Silently ignore errors in cleanup
+    except Exception:
+        pass  # Don't let cleanup failures affect main functionality
+        
     settings = frappe.get_single("FinBuddy Settings")
     if settings.env == 'Production':
-        # Create a unique temporary directory for user data
-        unique_user_data_dir = os.path.join(tempfile.gettempdir(), f"chrome_user_data_{os.getpid()}")
-        options.add_argument(f"--user-data-dir={unique_user_data_dir}") 
         options.add_argument("--headless")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
@@ -65,7 +84,6 @@ def setup_chrome_options(user_download_dir):
     }
     options.add_experimental_option("prefs", prefs)
     return options
-
 
 def setup_driver(username=None, site_name="default_site"):
     """Initialize and return Chrome WebDriver"""
@@ -135,6 +153,7 @@ def login_user(driver, username, password):
         password_field.clear()
         password_field.send_keys(password)
 
+        time.sleep(4)
         # Find the captcha element
         captcha_element = wait.until(
             EC.visibility_of_element_located((By.ID, "imgCaptcha"))

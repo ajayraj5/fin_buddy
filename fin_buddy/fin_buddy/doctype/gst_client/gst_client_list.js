@@ -97,6 +97,7 @@ function process_next_client(client_names, index, listview) {
         callback: function(r) {
             if (r.message && r.message.status === 'captcha_needed') {
                 // Show captcha dialog
+                console.log(r)
                 show_captcha_dialog(
                     r.message.captcha_url, 
                     r.message.session_id,
