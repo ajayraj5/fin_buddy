@@ -1,5 +1,6 @@
 {
  "actions": [],
+ "allow_import": 1,
  "allow_rename": 1,
  "autoname": "format:{demand_reference_no}-{assessment_year}",
  "creation": "2025-02-17 11:49:55.291038",
@@ -148,7 +149,7 @@
    "link_fieldname": "doc_name"
   }
  ],
- "modified": "2025-03-03 16:15:52.441138",
+ "modified": "2025-03-04 16:05:17.357538",
  "modified_by": "Administrator",
  "module": "Fin Buddy",
  "name": "Response to Outstanding Demand",

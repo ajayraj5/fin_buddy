@@ -4,15 +4,26 @@ from bs4 import BeautifulSoup
 from frappe.query_builder import Order
 from frappe.query_builder.functions import Coalesce
 from frappe.utils import getdate, cstr
+from frappe.utils.file_manager import save_file
 
 
-def gen_response(status, message, data=[]):
+def gen_response(
+    status,
+    message,
+    data=[],
+    **kwargs,
+):
     frappe.response["http_status_code"] = status
     if status == 500:
         frappe.response["message"] = BeautifulSoup(str(message)).get_text()
     else:
         frappe.response["message"] = message
-    frappe.response["result"] = data
+
+    if kwargs:
+        frappe.response.update(kwargs)
+
+    if data:
+        frappe.response["result"] = data
 
 
 def method_validate(methods):
@@ -215,6 +226,7 @@ def e_proceeding_list(
 ):
     args = frappe.local.form_dict
     search_query = args.get("search_query", "").strip().lower()
+    client = args.get("client", None)
     filters = []
 
     doctype = "E Proceeding"
@@ -304,6 +316,9 @@ Please use 'YYYY-MM-DD to YYYY-MM-DD'.",
         .offset(start)
     )
 
+    if client:
+        query = query.where(main_doc.client == client)
+
     records = query.run(as_dict=True)
 
     return gen_response(
@@ -317,8 +332,9 @@ Please use 'YYYY-MM-DD to YYYY-MM-DD'.",
 
 
 def get_file_full_url(file_url):
-    base_url = frappe.utils.get_url()
-    return f"{base_url}{file_url}"
+    file_full_url = frappe.utils.get_url(file_url)
+    return file_full_url
+    # return f"{base_url}{file_url}"
 
 
 @frappe.whitelist()
@@ -430,3 +446,201 @@ def e_proceeding_details():
             404,
             f"E proceeding not found with id {record_id}",
         )
+
+
+@frappe.whitelist()
+@method_validate(["POST"])
+def upload_file():
+    try:
+        if "file" not in frappe.request.files:
+            frappe.throw("No file uploaded")
+
+        args = frappe.local.form_dict
+
+        is_private = args.get("is_private", 0)
+
+        if is_private:
+            is_private = 1
+        else:
+            is_private = 0
+
+        uploaded_file = frappe.request.files["file"]
+        file_doc = save_file(
+            uploaded_file.filename,
+            uploaded_file.stream.read(),
+            None,
+            None,
+            is_private=is_private,
+        )
+
+        file_url = get_file_full_url(file_doc.file_url)
+
+        return gen_response(
+            200,
+            "File uploaded successfully",
+            file_url=file_url,
+        )
+    except Exception as ex:
+        return gen_response(
+            500,
+            cstr(ex),
+        )
+
+
+@frappe.whitelist()
+@method_validate(["POST"])
+def response_to_outstanding_demand_list(
+    start=0,
+    page_length=20,
+):
+    args = frappe.local.form_dict
+    search_query = args.get("search_query", "").strip().lower()
+    client = args.get("client", None)
+    filters = []
+
+    doctype = "Response to Outstanding Demand"
+
+    if search_query:
+        date_parts = search_query.split(" to ")
+
+        if len(date_parts) == 2:
+            try:
+                from_date = getdate(date_parts[0].strip())
+                to_date = getdate(date_parts[1].strip())
+                filters.append(
+                    [
+                        doctype,
+                        "creation",
+                        "Between",
+                        [from_date, to_date],
+                    ]
+                )
+            except ValueError:
+                return gen_response(
+                    400,
+                    "Invalid date range format. \
+Please use 'YYYY-MM-DD to YYYY-MM-DD'.",
+                )
+        else:
+            if frappe.db.get_value(
+                doctype, {"name": ["like", f"%{search_query}%"]}, "name"
+            ):
+                filters.append([doctype, "name", "like", f"%{search_query}%"])
+
+            if frappe.db.get_value(
+                doctype,
+                {
+                    "demand_reference_no": [
+                        "like",
+                        f"%{search_query}%",
+                    ]
+                },
+                "name",
+            ):
+                filters.append(
+                    [
+                        doctype,
+                        "demand_reference_no",
+                        "like",
+                        f"%{search_query}%",
+                    ]
+                )
+
+            if frappe.db.get_value(
+                doctype, {"client": ["like", f"%{search_query}%"]}, "name"
+            ):
+                filters.append(
+                    [doctype, "client", "like", f"%{search_query}%"],
+                )
+
+            if frappe.db.get_value(
+                doctype,
+                {
+                    "section_code": [
+                        "like",
+                        f"%{search_query}%",
+                    ]
+                },
+                "name",
+            ):
+                filters.append(
+                    [doctype, "section_code", "like", f"%{search_query}%"],
+                )
+
+            if frappe.db.get_value(
+                doctype,
+                {
+                    "response_type": [
+                        "like",
+                        f"%{search_query}%",
+                    ]
+                },
+                "name",
+            ):
+                filters.append(
+                    [doctype, "response_type", "like", f"%{search_query}%"],
+                )
+
+            if frappe.db.get_value(
+                doctype,
+                {
+                    "rectification_rights": [
+                        "like",
+                        f"%{search_query}%",
+                    ]
+                },
+                "name",
+            ):
+                filters.append(
+                    [
+                        doctype,
+                        "rectification_rights",
+                        "like",
+                        f"%{search_query}%",
+                    ],
+                )
+
+    # doctype = "E Proceeding"
+    main_doc = frappe.qb.DocType(doctype)
+
+    query = (
+        frappe.qb.from_(main_doc)
+        .select(
+            main_doc.name.as_("id"),
+            Coalesce(main_doc.demand_reference_no, "").as_(
+                "demand_reference_no",
+            ),
+            Coalesce(main_doc.assessment_year, "").as_("assessment_year"),
+            Coalesce(main_doc.outstanding_demand_amount, "").as_(
+                "outstanding_demand_amount",
+            ),
+            Coalesce(main_doc.client, "").as_("client"),
+            Coalesce(main_doc.section_code, "").as_("section_code"),
+            Coalesce(main_doc.mode_of_service, "").as_("mode_of_service"),
+            Coalesce(main_doc.rectification_rights, "").as_(
+                "rectification_rights",
+            ),
+            Coalesce(main_doc.response_type, "").as_("response_type"),
+            main_doc.creation,
+            main_doc.modified,
+            main_doc.owner,
+            main_doc.modified_by,
+        )
+        .orderby(main_doc.creation, order=Order.asc)
+        .limit(page_length)
+        .offset(start)
+    )
+
+    if client:
+        query = query.where(main_doc.client == client)
+
+    records = query.run(as_dict=True)
+
+    return gen_response(
+        200,
+        f"{doctype} list fetched successfully",
+        data=dict(
+            total_records=len(records),
+            records=records,
+        ),
+    )
