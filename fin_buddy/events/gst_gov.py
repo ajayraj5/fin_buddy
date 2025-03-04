@@ -1727,7 +1727,7 @@ def restore_session_state(driver, serialized_state):
                 frappe.log_error(f"Error adding cookie {cookie}: {str(e)}", "GST Session Cookie Error")
         
         # Navigate to the saved URL
-        driver.get(state["current_url"])
+        driver.get("https://services.gst.gov.in/services/login")
         # https://services.gst.gov.in/services/login
         
         return True
