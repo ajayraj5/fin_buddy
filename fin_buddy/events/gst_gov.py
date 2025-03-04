@@ -129,7 +129,7 @@ def get_or_create_gst_client_document(client_name):
         return None
 
 
-def login_user(driver, username, password):
+def login_user_old(driver, username, password):
     """
     Start the login process and capture the captcha.
     Returns the captcha image path and maintains the session.
@@ -1276,9 +1276,8 @@ def login(client_name):
 
 
 
-
 @frappe.whitelist()
-def process_gst_client_login(client_name):
+def process_gst_client_login_old(client_name):
     """Start GST client login process and get captcha"""
     try:
         # Get the client document
@@ -1336,27 +1335,10 @@ def process_gst_client_login(client_name):
         error_msg = f"Error starting login process for {client_name}: {str(e)}"
         frappe.log_error(error_msg, "GST Portal Login Error")
         return {"status": "error", "message": error_msg}
-# def main():
-#     try:
-#         # Replace with actual credentials
-#         username = "AADCH3199K1"
-#         password = "Aarya@2025"
-        
-#         if not username or not password:
-#             print("Missing credentials")
-#             return
-        
-#         process_gst_notices(username, password)
-        
-#     except Exception as e:
-#         print(f"Main execution error: {str(e)}")
-
-# if __name__ == "__main__":
-#     main()
 
 
 @frappe.whitelist()
-def submit_gst_captcha(session_id, captcha_text):
+def submit_gst_captcha_old(session_id, captcha_text):
     """Complete the GST login with the provided captcha"""
     try:
         # Retrieve session info
@@ -1418,6 +1400,294 @@ def submit_gst_captcha(session_id, captcha_text):
                 frappe.cache().delete_value(f"gst_login_driver:{session_id}")
         else:
             return {"status": "error", "message": "Login failed. Invalid captcha or other login error."}
+            
+    except Exception as e:
+        error_msg = f"Error submitting captcha: {str(e)}"
+        frappe.log_error(error_msg, "GST Portal Captcha Error")
+        return {"status": "error", "message": error_msg}
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def login_user(driver, username, password):
+    """
+    Start the login process and capture the captcha.
+    Returns the captcha image path and maintains the session.
+    """
+    try:
+        wait = WebDriverWait(driver, 20)
+        driver.get("https://services.gst.gov.in/services/login")
+        time.sleep(2)  # Increased wait time
+
+        # Enter Username
+        username_field = wait.until(
+            EC.visibility_of_element_located((By.ID, "username"))
+        )
+        username_field.clear()
+        username_field.send_keys(username)
+
+        # Enter Password
+        password_field = wait.until(
+            EC.visibility_of_element_located((By.ID, "user_pass"))
+        )
+        password_field.clear()
+        password_field.send_keys(password)
+
+        time.sleep(4)
+        # Find the captcha element
+        captcha_element = wait.until(
+            EC.visibility_of_element_located((By.ID, "imgCaptcha"))
+        )
+        
+        # Take a screenshot of the entire page first to ensure browser is rendering properly
+        page_screenshot_path = os.path.join(frappe.get_site_path('public', 'files'), f'page_{username}_{int(time.time())}.png')
+        driver.save_screenshot(page_screenshot_path)
+        
+        # Get the location and size of the captcha element
+        location = captcha_element.location
+        size = captcha_element.size
+        
+        # Take a screenshot of the captcha element using PIL for better handling
+        from PIL import Image
+        img = Image.open(page_screenshot_path)
+        
+        # Calculate coordinates
+        left = location['x']
+        top = location['y']
+        right = location['x'] + size['width']
+        bottom = location['y'] + size['height']
+        
+        # Crop the image
+        img = img.crop((left, top, right, bottom))
+        
+        # Save the cropped image
+        captcha_image_path = os.path.join(frappe.get_site_path('public', 'files'), f'captcha_{username}_{int(time.time())}.png')
+        img.save(captcha_image_path)
+        
+        # Clean up the page screenshot
+        os.remove(page_screenshot_path)
+        
+        # Return the relative path to be used in the frontend
+        relative_path = os.path.basename(captcha_image_path)
+        return {
+            "status": "captcha_needed",
+            "captcha_path": f"/files/{relative_path}"
+        }
+
+    except Exception as e:
+        print(f"Login preparation failed for user {username}: {str(e)}")
+        return {"status": "error", "message": str(e)}
+
+
+# Add a cleanup function to be run periodically
+def cleanup_stale_gst_sessions():
+    """Clean up any stale GST sessions to prevent memory leaks"""
+    try:
+        if hasattr(frappe.local, "gst_drivers"):
+            current_time = time.time()
+            sessions_to_remove = []
+            
+            for session_id, driver in frappe.local.gst_drivers.items():
+                # Check if session is still valid
+                heartbeat = frappe.cache().get_value(f"gst_session_heartbeat:{session_id}")
+                
+                if not heartbeat or (current_time - heartbeat > 600):  # 10 minutes
+                    # Session expired, clean up
+                    try:
+                        driver.quit()
+                    except Exception:
+                        pass  # Ignore errors during driver cleanup
+                    
+                    sessions_to_remove.append(session_id)
+            
+            # Remove expired sessions
+            for session_id in sessions_to_remove:
+                del frappe.local.gst_drivers[session_id]
+                frappe.cache().delete_value(f"gst_login_session:{session_id}")
+                frappe.cache().delete_value(f"gst_session_heartbeat:{session_id}")
+    except Exception as e:
+        frappe.log_error(f"Error cleaning up GST sessions: {str(e)}", "GST Session Cleanup Error")
+
+
+# Register cleanup task
+# You can call this in hooks.py to run periodically
+# e.g., in hooks.py: scheduler_events = { "hourly": ["fin_buddy.events.gst_gov.cleanup_stale_gst_sessions"] }
+
+# Create a persistent global registry for drivers
+if not hasattr(frappe, "_persistent_gst_drivers"):
+    frappe._persistent_gst_drivers = {}
+
+
+@frappe.whitelist()
+def process_gst_client_login(client_name):
+    """Start GST client login process and get captcha"""
+    try:
+        # Get the client document
+        doc = frappe.get_doc("GST Client", client_name)
+        
+        # Get credentials
+        username = doc.gst_username
+        password = doc.get_password("gst_password")
+        
+        if not username or not password:
+            return {"status": "error", "message": f"Missing credentials for client {client_name}"}
+        
+        # Setup driver
+        driver, user_download_dir = setup_driver(username, "gst")
+        
+        # Start login and get captcha
+        login_result = login_user(driver, username, password)
+        
+        if login_result["status"] == "captcha_needed":
+            # Generate a unique session ID
+            session_id = frappe.generate_hash()
+            
+            # Store the driver in our persistent registry
+            frappe._persistent_gst_drivers[session_id] = driver
+            
+            # Store driver metadata in Redis cache
+            frappe.cache().set_value(
+                f"gst_session:{session_id}", 
+                {
+                    "username": username,
+                    "client_name": client_name,
+                    "download_dir": user_download_dir,
+                    "created_at": time.time(),
+                    "pid": os.getpid()  # Store the process ID
+                },
+                expires_in_sec=1200  # 20 minutes - generous timeout
+            )
+            
+            return {
+                "status": "captcha_needed",
+                "session_id": session_id,
+                "captcha_url": login_result["captcha_path"],
+                "client_name": client_name
+            }
+        else:
+            # Handle error case
+            if driver:
+                driver.quit()
+            return login_result
+            
+    except Exception as e:
+        error_msg = f"Error starting login process for {client_name}: {str(e)}"
+        frappe.log_error(error_msg, "GST Portal Login Error")
+        return {"status": "error", "message": error_msg}
+
+@frappe.whitelist()
+def check_session_status(session_id):
+    """Check if a session is still valid"""
+    try:
+        # Check if session exists in Redis
+        session_info = frappe.cache().get_value(f"gst_session:{session_id}")
+        if not session_info:
+            return {"status": "error", "valid": False, "message": "Session expired or not found"}
+        
+        # Check if driver exists in registry
+        if session_id not in frappe._persistent_gst_drivers:
+            # Try to recover from another worker if possible
+            return {"status": "error", "valid": False, "message": "Driver session not found in current process"}
+        
+        return {"status": "success", "valid": True}
+    except Exception as e:
+        return {"status": "error", "valid": False, "message": str(e)}
+
+@frappe.whitelist()
+def submit_gst_captcha(session_id, captcha_text):
+    """Complete the GST login with the provided captcha"""
+    try:
+        # Check if session exists in Redis
+        session_info = frappe.cache().get_value(f"gst_session:{session_id}")
+        if not session_info:
+            return {"status": "error", "message": "Session expired. Please try again."}
+        
+        # Check if we're in the same process
+        current_pid = os.getpid()
+        session_pid = session_info.get("pid")
+        
+        if current_pid != session_pid:
+            frappe.log_error(
+                f"PID mismatch: current={current_pid}, session={session_pid}", 
+                "GST Session Error"
+            )
+            return {"status": "error", "message": "Session was created in a different process. Please try again with a new session."}
+        
+        # Check if driver exists in registry
+        if session_id not in frappe._persistent_gst_drivers:
+            frappe.log_error(
+                f"Driver not found in registry for session {session_id}", 
+                "GST Session Error"
+            )
+            return {"status": "error", "message": "Driver session lost. Please try again with a new session."}
+        
+        # Get driver and session details
+        driver = frappe._persistent_gst_drivers[session_id]
+        client_name = session_info["client_name"]
+        username = session_info["username"]
+        user_download_dir = session_info["download_dir"]
+        
+        # Complete the login
+        try:
+            if complete_login(driver, captcha_text):
+                # Login successful, now process the client
+                try:
+                    # Continue with your existing process flow
+                    if navigate_to_notices(driver):
+                        # Extract notice data
+                        notices_data = extract_notice_data(driver, user_download_dir, client_name)
+                        if notices_data:
+                            print(f"Processed notices data for {client_name}")
+                            # Any additional processing here
+
+                        add_notices_data = extract_gst_additional_notice_data(driver, user_download_dir)
+                        if add_notices_data:
+                            create_gst_additional_notice_table(client_name, add_notices_data)
+                            
+                    # Logout
+                    logout_user(driver)
+                    
+                    # Update client document
+                    doc = frappe.get_doc("GST Client", client_name)
+                    doc.last_gst_sync = frappe.utils.now()
+                    doc.save()
+                    frappe.db.commit()
+                    
+                    return {"status": "success", "message": "Processing completed successfully"}
+                except Exception as e:
+                    error_msg = f"Error processing client {client_name} after login: {str(e)}"
+                    frappe.log_error(error_msg, "GST Portal Processing Error")
+                    return {"status": "error", "message": error_msg}
+            else:
+                return {"status": "error", "message": "Login failed. Invalid captcha or other login error."}
+        except Exception as e:
+            error_msg = f"Error in login completion: {str(e)}"
+            frappe.log_error(error_msg, "GST Login Error")
+            return {"status": "error", "message": error_msg}
+        finally:
+            # Always clean up resources
+            try:
+                if driver:
+                    driver.quit()
+            except Exception:
+                pass  # Ignore errors during driver cleanup
+                
+            # Remove from registry and cache
+            if session_id in frappe._persistent_gst_drivers:
+                del frappe._persistent_gst_drivers[session_id]
+                
+            frappe.cache().delete_value(f"gst_session:{session_id}")
             
     except Exception as e:
         error_msg = f"Error submitting captcha: {str(e)}"
