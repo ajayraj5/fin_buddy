@@ -1718,12 +1718,17 @@ def restore_session_state(driver, serialized_state):
         for cookie in state["cookies"]:
             # Some cookies can't be set directly
             try:
+                if cookie.get("httpOnly") or cookie.get("secure"):
+                    continue  
+                if "domain" in cookie and not driver.current_url.startswith(cookie["domain"]):
+                    cookie["domain"] = ".gst.gov.in"  # Adjust domain
                 driver.add_cookie(cookie)
             except Exception as e:
                 frappe.log_error(f"Error adding cookie {cookie}: {str(e)}", "GST Session Cookie Error")
         
         # Navigate to the saved URL
         driver.get(state["current_url"])
+        # https://services.gst.gov.in/services/login
         
         return True
     except Exception as e:
