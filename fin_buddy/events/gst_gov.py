@@ -31,7 +31,7 @@ def setup_user_directory(username="user_not_defined", site_name="default_site"):
     
     return user_dir
 
-def setup_chrome_options(user_download_dir):
+def setup_chrome_options_old(user_download_dir):
     """Setup Chrome options with the specified download directory"""
     options = Options()
     options.add_argument("user-agent=Mozilla/5.0 (Windows NT 20.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
@@ -83,6 +83,119 @@ def setup_chrome_options(user_download_dir):
         "profile.default_content_setting_values.notifications": 2
     }
     options.add_experimental_option("prefs", prefs)
+    return options
+
+
+def setup_chrome_options(user_download_dir):
+    """Setup Chrome options with production environment focus"""
+    import os
+    import time
+    import tempfile
+    import random
+    import string
+    import subprocess
+    from selenium.webdriver.chrome.options import Options
+
+    options = Options()
+    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 20.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+    
+    # Check if we're in production environment
+    is_production = False
+    try:
+        import frappe
+        settings = frappe.get_single("FinBuddy Settings")
+        is_production = settings.env == 'Production'
+    except:
+        # If we can't determine, assume it's not production
+        pass
+    
+    # Production-specific settings
+    if is_production:
+        # Kill any existing Chrome processes on the server
+        try:
+            subprocess.run(["pkill", "-f", "chrome"], stderr=subprocess.DEVNULL)
+        except:
+            pass  # Ignore if pkill fails
+            
+        # Generate a truly unique directory for each run in production
+        timestamp = int(time.time() * 1000)  # Millisecond precision
+        random_str = ''.join(random.choices(string.ascii_lowercase + string.digits, k=10))
+        process_id = os.getpid()
+        
+        # Use a directory structure unlikely to conflict
+        unique_user_data_dir = f"/tmp/chrome_data_{process_id}_{timestamp}_{random_str}"
+        
+        # Make sure it's clean
+        try:
+            if os.path.exists(unique_user_data_dir):
+                import shutil
+                shutil.rmtree(unique_user_data_dir)
+            os.makedirs(unique_user_data_dir, exist_ok=True)
+        except:
+            # If creation fails, try an alternative location
+            unique_user_data_dir = f"/var/tmp/chrome_data_{process_id}_{timestamp}_{random_str}"
+            os.makedirs(unique_user_data_dir, exist_ok=True)
+            
+        # Critical headless mode settings for production
+        options.add_argument(f"--user-data-dir={unique_user_data_dir}")
+        options.add_argument("--headless=new")  # Modern headless implementation
+        options.add_argument("--disable-dev-shm-usage")  # Overcome limited /dev/shm in containers
+        options.add_argument("--no-sandbox")  # Required in some restricted environments
+        options.add_argument("--disable-gpu")  # Often helps with headless issues
+        options.add_argument("--window-size=1920,1080")  # Set explicit window size
+        options.add_argument("--remote-debugging-port=9222")  # Can help with debugging
+        
+        # Clean up old data directories (production only - more aggressive)
+        try:
+            import glob
+            old_dirs = glob.glob("/tmp/chrome_data_*")
+            old_dirs.extend(glob.glob("/var/tmp/chrome_data_*"))
+            for old_dir in old_dirs:
+                if old_dir != unique_user_data_dir:  # Don't delete our new directory
+                    if os.path.getmtime(old_dir) < time.time() - 1800:  # 30 minutes
+                        import shutil
+                        try:
+                            shutil.rmtree(old_dir, ignore_errors=True)
+                        except:
+                            pass
+        except:
+            pass  # Silently ignore cleanup errors
+    else:
+        # Local development settings (maintain your existing approach)
+        options.add_argument("--start-maximized")
+        
+        # Still use a unique directory, but less aggressively
+        timestamp = int(time.time())
+        unique_user_data_dir = os.path.join(
+            tempfile.gettempdir(), 
+            f"chrome_user_data_{os.getpid()}_{timestamp}"
+        )
+        options.add_argument(f"--user-data-dir={unique_user_data_dir}")
+    
+    # Common settings for both environments
+    options.add_argument("--disable-blink-features=AutomationControlled")
+    options.add_experimental_option("useAutomationExtension", False)
+    options.add_experimental_option('excludeSwitches', ['enable-automation'])
+    options.add_argument("--no-first-run")
+    options.add_argument("--no-default-browser-check")
+    
+    # Download preferences
+    prefs = {
+        "download.default_directory": user_download_dir,
+        "download.prompt_for_download": False,
+        "download.directory_upgrade": True,
+        "safebrowsing.enabled": True,
+        "profile.default_content_setting_values.automatic_downloads": 1,
+        "profile.content_settings.exceptions.automatic_downloads.*.setting": 1,
+        "plugins.always_open_pdf_externally": True,
+        "credentials_enable_service": False,
+        "profile.password_manager_enabled": False,
+        "profile.block_third_party_cookies": False,
+        "profile.default_content_settings.popups": 0,
+        "profile.default_content_setting_values.notifications": 2
+    }
+    options.add_experimental_option("prefs", prefs)
+    
     return options
 
 def setup_driver(username=None, site_name="default_site"):
