@@ -2,6 +2,7 @@ import frappe
 import wrapt
 from bs4 import BeautifulSoup
 from frappe.query_builder import Order
+from frappe.query_builder.functions import Coalesce
 from frappe.utils import getdate, cstr
 
 
@@ -82,24 +83,26 @@ Please use 'YYYY-MM-DD to YYYY-MM-DD'.",
                     [doctype, "client_name", "like", f"%{search_query}%"],
                 )
 
-    itc = frappe.qb.DocType(doctype)
+    main_doc = frappe.qb.DocType(doctype)
 
     query = (
-        frappe.qb.from_(itc)
+        frappe.qb.from_(main_doc)
         .select(
-            itc.name.as_("id"),
-            itc.client_name,
-            itc.dob,
-            itc.username,
-            itc.password,
-            itc.last_income_tax_sync,
-            itc.disabled,
-            itc.creation,
-            itc.modified,
-            itc.owner,
-            itc.modified_by,
+            main_doc.name.as_("id"),
+            Coalesce(main_doc.client_name, "").as_("client_name"),
+            Coalesce(main_doc.dob, "").as_("dob"),
+            Coalesce(main_doc.username, "").as_("username"),
+            Coalesce(main_doc.password, "").as_("password"),
+            Coalesce(main_doc.last_income_tax_sync, "").as_(
+                "last_income_tax_sync",
+            ),
+            Coalesce(main_doc.disabled, "").as_("disabled"),
+            main_doc.creation,
+            main_doc.modified,
+            main_doc.owner,
+            main_doc.modified_by,
         )
-        .orderby(itc.creation, order=Order.asc)
+        .orderby(main_doc.creation, order=Order.asc)
         .limit(page_length)
         .offset(start)
     )
@@ -169,7 +172,7 @@ def income_tax_client_details():
         return gen_response(400, "ID required to fetch det6ails!")
 
     if frappe.db.exists(doctype, record_id):
-        record = frappe.db.get_values(
+        record = frappe.db.get_value(
             doctype,
             record_id,
             [
@@ -188,6 +191,10 @@ def income_tax_client_details():
             as_dict=True,
         )
 
+        for key, value in record.items():
+            if value is None:
+                record[key] = ""
+
         return gen_response(
             200,
             "Income tax client details fetched successfully!",
@@ -198,3 +205,112 @@ def income_tax_client_details():
             404,
             f"Income tax client not found with id {record_id}",
         )
+
+
+@frappe.whitelist()
+@method_validate(["POST"])
+def e_proceeding_list(
+    start=0,
+    page_length=20,
+):
+    args = frappe.local.form_dict
+    search_query = args.get("search_query", "").strip().lower()
+    filters = []
+
+    doctype = "E Proceeding"
+
+    if search_query:
+        date_parts = search_query.split(" to ")
+
+        if len(date_parts) == 2:
+            try:
+                from_date = getdate(date_parts[0].strip())
+                to_date = getdate(date_parts[1].strip())
+                filters.append(
+                    [
+                        doctype,
+                        "creation",
+                        "Between",
+                        [from_date, to_date],
+                    ]
+                )
+            except ValueError:
+                return gen_response(
+                    400,
+                    "Invalid date range format. \
+Please use 'YYYY-MM-DD to YYYY-MM-DD'.",
+                )
+        else:
+            if frappe.db.get_value(
+                doctype, {"name": ["like", f"%{search_query}%"]}, "name"
+            ):
+                filters.append([doctype, "name", "like", f"%{search_query}%"])
+
+            if frappe.db.get_value(
+                doctype,
+                {
+                    "proceeding_name": [
+                        "like",
+                        f"%{search_query}%",
+                    ]
+                },
+                "name",
+            ):
+                filters.append(
+                    [
+                        doctype,
+                        "proceeding_name",
+                        "like",
+                        f"%{search_query}%",
+                    ]
+                )
+
+            if frappe.db.get_value(
+                doctype, {"client": ["like", f"%{search_query}%"]}, "name"
+            ):
+                filters.append(
+                    [doctype, "client", "like", f"%{search_query}%"],
+                )
+
+            if frappe.db.get_value(
+                doctype, {"notice_din": ["like", f"%{search_query}%"]}, "name"
+            ):
+                filters.append(
+                    [doctype, "notice_din", "like", f"%{search_query}%"],
+                )
+
+    # doctype = "E Proceeding"
+    main_doc = frappe.qb.DocType(doctype)
+
+    query = (
+        frappe.qb.from_(main_doc)
+        .select(
+            main_doc.name.as_("id"),
+            Coalesce(main_doc.proceeding_name, "").as_("proceeding_name"),
+            Coalesce(main_doc.assessment_year, "").as_("assessment_year"),
+            Coalesce(main_doc.financial_year, "").as_("financial_year"),
+            Coalesce(main_doc.client, "").as_("client"),
+            Coalesce(main_doc.proceeding_status, "").as_("proceeding_status"),
+            Coalesce(main_doc.notice_din, "").as_("notice_din"),
+            Coalesce(main_doc.response_due_date, "").as_("response_due_date"),
+            Coalesce(main_doc.notice_sent_date, "").as_("notice_sent_date"),
+            main_doc.creation,
+            main_doc.modified,
+            main_doc.owner,
+            main_doc.modified_by,
+        )
+        .orderby(main_doc.creation, order=Order.asc)
+        .limit(page_length)
+        .offset(start)
+    )
+
+    records = query.run(as_dict=True)
+
+    return gen_response(
+        200,
+        "E Proceeding list fetched successfully",
+        data=dict(
+            total_records=len(records),
+            records=records,
+        ),
+    )
