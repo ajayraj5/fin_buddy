@@ -1,129 +1,138 @@
 {
- "actions": [],
- "allow_rename": 1,
- "creation": "2025-02-20 15:02:27.858139",
- "doctype": "DocType",
- "engine": "InnoDB",
- "field_order": [
-  "env",
-  "section_break_hsvs",
-  "model_name",
-  "openai_key",
-  "system_role",
-  "section_break_pnlu",
-  "max_token",
-  "temperature",
-  "column_break_mkit",
-  "frequency_penalty",
-  "e_proceeding_section",
-  "give_response_without_notice",
-  "mapping_content"
- ],
- "fields": [
-  {
-   "default": "gpt-3.5-turbo",
-   "fieldname": "model_name",
-   "fieldtype": "Select",
-   "in_list_view": 1,
-   "label": "Model Name",
-   "options": "gpt-3.5-turbo\ngpt-4-turbo\ngpt-4\ngpt-4-32k\ngpt-3.5-turbo-16k",
-   "reqd": 1
-  },
-  {
-   "fieldname": "openai_key",
-   "fieldtype": "Password",
-   "in_list_view": 1,
-   "label": "OpenAI Key",
-   "reqd": 1
-  },
-  {
-   "fieldname": "system_role",
-   "fieldtype": "Small Text",
-   "label": "System Role"
-  },
-  {
-   "fieldname": "section_break_pnlu",
-   "fieldtype": "Section Break"
-  },
-  {
-   "default": "300",
-   "description": "(Controls Response Length)",
-   "fieldname": "max_token",
-   "fieldtype": "Int",
-   "label": "Max Token",
-   "non_negative": 1,
-   "precision": "2"
-  },
-  {
-   "default": "0.3",
-   "description": "(Controls Randomness & Creativity)\n",
-   "fieldname": "temperature",
-   "fieldtype": "Float",
-   "label": "Temperature",
-   "non_negative": 1,
-   "precision": "2"
-  },
-  {
-   "fieldname": "column_break_mkit",
-   "fieldtype": "Column Break"
-  },
-  {
-   "default": "0.5",
-   "description": "(Reduces Repetitions)",
-   "fieldname": "frequency_penalty",
-   "fieldtype": "Float",
-   "label": "Frequency Penalty",
-   "non_negative": 1,
-   "precision": "2"
-  },
-  {
-   "fieldname": "e_proceeding_section",
-   "fieldtype": "Section Break",
-   "label": "E Proceeding "
-  },
-  {
-   "default": "0",
-   "fieldname": "give_response_without_notice",
-   "fieldtype": "Check",
-   "label": "Give Response Without Notice"
-  },
-  {
-   "fieldname": "mapping_content",
-   "fieldtype": "Long Text",
-   "label": "Mapping Content"
-  },
-  {
-   "fieldname": "env",
-   "fieldtype": "Select",
-   "label": "Env",
-   "options": "Local\nProduction"
-  },
-  {
-   "fieldname": "section_break_hsvs",
-   "fieldtype": "Section Break"
-  }
- ],
- "index_web_pages_for_search": 1,
- "issingle": 1,
- "links": [],
- "modified": "2025-03-03 15:39:22.738252",
- "modified_by": "Administrator",
- "module": "Fin Buddy",
- "name": "FinBuddy Settings",
- "owner": "Administrator",
- "permissions": [
-  {
-   "create": 1,
-   "delete": 1,
-   "email": 1,
-   "print": 1,
-   "read": 1,
-   "role": "System Manager",
-   "share": 1,
-   "write": 1
-  }
- ],
- "sort_field": "modified",
- "sort_order": "DESC",
- "states": []
+   "actions": [],
+   "allow_rename": 1,
+   "creation": "2025-02-20 15:02:27.858139",
+   "doctype": "DocType",
+   "engine": "InnoDB",
+   "field_order": [
+      "env",
+      "section_break_hsvs",
+      "model_name",
+      "openai_key",
+      "system_role",
+      "section_break_pnlu",
+      "max_token",
+      "temperature",
+      "column_break_mkit",
+      "frequency_penalty",
+      "e_proceeding_section",
+      "give_response_without_notice",
+      "mapping_content",
+      "tab_break_yby8",
+      "masking_rules_section",
+      "masking_rules"
+   ],
+   "fields": [
+      {
+         "default": "gpt-3.5-turbo",
+         "fieldname": "model_name",
+         "fieldtype": "Select",
+         "in_list_view": 1,
+         "label": "Model Name",
+         "options": "gpt-3.5-turbo\ngpt-4-turbo\ngpt-4\ngpt-4-32k\ngpt-3.5-turbo-16k",
+         "reqd": 1
+      },
+      {
+         "fieldname": "openai_key",
+         "fieldtype": "Password",
+         "in_list_view": 1,
+         "label": "OpenAI Key",
+         "reqd": 1
+      },
+      {
+         "fieldname": "system_role",
+         "fieldtype": "Small Text",
+         "label": "System Role"
+      },
+      {
+         "fieldname": "section_break_pnlu",
+         "fieldtype": "Section Break"
+      },
+      {
+         "default": "300",
+         "description": "(Controls Response Length)",
+         "fieldname": "max_token",
+         "fieldtype": "Int",
+         "label": "Max Token",
+         "non_negative": 1,
+         "precision": "2"
+      },
+      {
+         "default": "0.3",
+         "description": "(Controls Randomness & Creativity)\n",
+         "fieldname": "temperature",
+         "fieldtype": "Float",
+         "label": "Temperature",
+         "non_negative": 1,
+         "precision": "2"
+      },
+      {
+         "fieldname": "column_break_mkit",
+         "fieldtype": "Column Break"
+      },
+      {
+         "default": "0.5",
+         "description": "(Reduces Repetitions)",
+         "fieldname": "frequency_penalty",
+         "fieldtype": "Float",
+         "label": "Frequency Penalty",
+         "non_negative": 1,
+         "precision": "2"
+      },
+      {
+         "fieldname": "e_proceeding_section",
+         "fieldtype": "Section Break",
+         "label": "E Proceeding "
+      },
+      {
+         "default": "0",
+         "fieldname": "give_response_without_notice",
+         "fieldtype": "Check",
+         "label": "Give Response Without Notice"
+      },
+      {
+         "fieldname": "mapping_content",
+         "fieldtype": "Long Text",
+         "label": "Mapping Content"
+      },
+      {
+         "fieldname": "tab_break_yby8",
+         "fieldtype": "Tab Break",
+         "label": "Data Masking"
+      },
+      {
+         "fieldname": "masking_rules_section",
+         "fieldtype": "Section Break",
+         "label": "Masking Rules"
+      },
+      {
+         "fieldname": "masking_rules",
+         "fieldtype": "Table",
+         "label": "Masking Rules",
+         "options": "Masking Rules"
+      }
+   ],
+   "index_web_pages_for_search": 1,
+   "issingle": 1,
+   "links": [],
+   "modified": "2025-03-03 12:29:04.849668",
+   "modified_by": "Administrator",
+   "module": "Fin Buddy",
+   "name": "FinBuddy Settings",
+   "owner": "Administrator",
+   "permissions": [
+      {
+         "create": 1,
+         "delete": 1,
+         "email": 1,
+         "print": 1,
+         "read": 1,
+         "role": "System Manager",
+         "share": 1,
+         "write": 1
+      }
+   ],
+   "sort_field": "modified",
+   "sort_order": "DESC",
+   "states": []
 }

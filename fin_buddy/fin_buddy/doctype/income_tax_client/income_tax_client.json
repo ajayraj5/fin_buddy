@@ -1,5 +1,6 @@
 {
  "actions": [],
+ "allow_import": 1,
  "allow_rename": 1,
  "autoname": "format:IN-TAX-CLT-{#####}",
  "creation": "2025-02-25 14:06:29.267774",
@@ -11,7 +12,6 @@
   "client_name",
   "column_break_kufo",
   "dob",
-  "disabled",
   "login_credentials_section",
   "username",
   "column_break_nlld",
@@ -29,14 +29,14 @@
    "fieldname": "client_name",
    "fieldtype": "Data",
    "label": "Client Name",
-   "reqd": 1,
-   "unique": 1
+   "read_only": 1
   },
   {
    "description": "(DDMMYYYY)",
    "fieldname": "dob",
    "fieldtype": "Data",
-   "label": "DOB"
+   "label": "DOB",
+   "read_only": 1
   },
   {
    "fieldname": "column_break_kufo",
@@ -53,8 +53,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "IncomeTax Username",
-   "reqd": 1,
-   "unique": 1
+   "read_only": 1
   },
   {
    "fieldname": "column_break_nlld",
@@ -65,7 +64,7 @@
    "fieldtype": "Password",
    "in_list_view": 1,
    "label": "Password",
-   "reqd": 1
+   "read_only": 1
   },
   {
    "fieldname": "income_tax_details_section",
@@ -81,29 +80,17 @@
   {
    "fieldname": "client_id",
    "fieldtype": "Link",
-   "hidden": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Client ID",
-   "options": "Client"
-  },
-  {
-   "default": "0",
-   "fieldname": "disabled",
-   "fieldtype": "Check",
-   "label": "Disabled"
+   "options": "Client",
+   "reqd": 1,
+   "unique": 1
   }
  ],
  "index_web_pages_for_search": 1,
- "links": [
-  {
-   "link_doctype": "Response to Outstanding Demand",
-   "link_fieldname": "client"
-  },
-  {
-   "link_doctype": "E Proceeding",
-   "link_fieldname": "client"
-  }
- ],
- "modified": "2025-03-03 16:20:01.228992",
+ "links": [],
+ "modified": "2025-03-04 10:37:40.565690",
  "modified_by": "Administrator",
  "module": "Fin Buddy",
  "name": "Income Tax Client",
