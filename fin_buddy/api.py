@@ -182,8 +182,8 @@ def income_tax_client_details():
                 "username",
                 "password",
                 "disabled",
-                "owner",
                 "last_income_tax_sync",
+                "owner",
                 "modified_by",
                 "creation",
                 "modified",
@@ -314,3 +314,119 @@ Please use 'YYYY-MM-DD to YYYY-MM-DD'.",
             records=records,
         ),
     )
+
+
+def get_file_full_url(file_url):
+    base_url = frappe.utils.get_url()
+    return f"{base_url}{file_url}"
+
+
+@frappe.whitelist()
+@method_validate(["POST"])
+def e_proceeding_details():
+    args = frappe.local.form_dict
+    doctype = "E Proceeding"
+
+    record_id = args.get("id")
+    if not record_id:
+        return gen_response(400, "ID required to fetch det6ails!")
+
+    if frappe.db.exists(doctype, record_id):
+        record = frappe.db.get_value(
+            doctype,
+            record_id,
+            [
+                "name as id",
+                "client",
+                "proceeding_name",
+                "assessment_year",
+                "financial_year",
+                "proceeding_status",
+                "notice_din",
+                "response_due_date",
+                "notice_sent_date",
+                "notice_section",
+                "notice_communication_reference_id as document_reference_id",
+                "response_acknowledgement",
+                "notice_letter",
+                "user_input",
+                "mask_this_data",
+                "response_message",
+                "is_terms_and_conditions_checked",
+                "owner",
+                "modified_by",
+                "creation",
+                "modified",
+            ],
+            as_dict=True,
+        )
+
+        reply_records = frappe.db.get_values(
+            "E Proceeding Reply",
+            {
+                "parent": record_id,
+                "parenttype": "E Proceeding",
+            },
+            [
+                "name as id",
+                "file",
+                "file_name",
+            ],
+            as_dict=True,
+        )
+
+        other_document_records = frappe.db.get_values(
+            "Attachment Item",
+            {
+                "parent": record_id,
+                "parenttype": "E Proceeding",
+            },
+            [
+                "name as id",
+                "file",
+            ],
+            as_dict=True,
+        )
+
+        record["replies"] = []
+        record["other_documents"] = []
+
+        if reply_records:
+            for temp in reply_records:
+                for key, value in temp.items():
+                    if value is None:
+                        temp[key] = ""
+
+                    if key == "file" and value and "http" not in value:
+                        temp[key] = get_file_full_url(value)
+
+            record["replies"] = reply_records
+
+        if other_document_records:
+            for temp in other_document_records:
+                for key, value in temp.items():
+                    if value is None:
+                        temp[key] = ""
+
+                    if key == "file" and value and "http" not in value:
+                        temp[key] = get_file_full_url(value)
+
+            record["other_documents"] = other_document_records
+
+        for key, value in record.items():
+            if value is None:
+                record[key] = ""
+
+            if key == "notice_letter" and value and "http" not in value:
+                record[key] = get_file_full_url(value)
+
+        return gen_response(
+            200,
+            "E proceeding details fetched successfully!",
+            data=record,
+        )
+    else:
+        return gen_response(
+            404,
+            f"E proceeding not found with id {record_id}",
+        )
