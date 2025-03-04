@@ -1,6 +1,5 @@
 {
  "actions": [],
- "allow_import": 1,
  "allow_rename": 1,
  "autoname": "format:{proceeding_name}-{#####}",
  "creation": "2025-02-17 16:50:27.315442",
@@ -35,9 +34,10 @@
   "other_documents",
   "mask_this_data",
   "section_break_yeyf",
-  "fetch_response_from_gpt",
-  "column_break_dxox",
   "view_data_before_response_generation",
+  "is_terms_and_conditions_checked",
+  "column_break_dxox",
+  "fetch_response_from_gpt",
   "section_break_pagl",
   "response_message"
  ],
@@ -168,6 +168,7 @@
    "label": "Response Message"
   },
   {
+   "depends_on": "eval: doc.is_terms_and_conditions_checked == 1\n",
    "fieldname": "fetch_response_from_gpt",
    "fieldtype": "Button",
    "label": "Generate Response"
@@ -210,6 +211,12 @@
    "fieldname": "view_data_before_response_generation",
    "fieldtype": "Button",
    "label": "View Data Before Response Generation"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_terms_and_conditions_checked",
+   "fieldtype": "Check",
+   "label": "Send your data to AI Model for response generation?"
   }
  ],
  "index_web_pages_for_search": 1,
@@ -219,7 +226,7 @@
    "link_fieldname": "doc_name"
   }
  ],
- "modified": "2025-03-04 12:43:25.938786",
+ "modified": "2025-03-04 13:29:27.821992",
  "modified_by": "Administrator",
  "module": "Fin Buddy",
  "name": "E Proceeding",

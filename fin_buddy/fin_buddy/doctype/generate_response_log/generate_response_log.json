@@ -7,6 +7,7 @@
  "engine": "InnoDB",
  "field_order": [
   "details_section",
+  "client_type",
   "client",
   "doctype_name",
   "doc_name",
@@ -24,9 +25,9 @@
  "fields": [
   {
    "fieldname": "client",
-   "fieldtype": "Link",
+   "fieldtype": "Dynamic Link",
    "label": "Client",
-   "options": "Client",
+   "options": "client_type",
    "read_only": 1
   },
   {
@@ -102,11 +103,18 @@
    "fieldtype": "Long Text",
    "label": "Final Response",
    "read_only": 1
+  },
+  {
+   "fieldname": "client_type",
+   "fieldtype": "Link",
+   "label": "Client Type",
+   "options": "DocType",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-02-27 10:55:29.805259",
+ "modified": "2025-03-04 11:53:22.579369",
  "modified_by": "Administrator",
  "module": "Fin Buddy",
  "name": "Generate Response Log",

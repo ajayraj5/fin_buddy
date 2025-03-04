@@ -377,9 +377,12 @@ def process_pdf_file(file_path, client_name):
                 return f.read(), False, "File processed successfully"
                 
             # Handle encrypted PDF
+            client_doc = frappe.get_doc("Income Tax Client", client_name)
+            dob_date = "" # dob date in ddmmyyyy format
+            if client_doc.dob:
+                dob_date = client_doc.dob.strftime("%d%m%Y")
             try:
-                client_doc = frappe.get_doc("Income Tax Client", client_name)
-                password = f"{client_doc.username.lower()}{client_doc.dob}"
+                password = f"{client_doc.username.lower()}{dob_date}"
                 reader.decrypt(password)
                 
                 writer = PyPDF2.PdfWriter()
@@ -2117,61 +2120,61 @@ def query_openai_old(user_input, notice_text, other_documents_text):
     return response["choices"][0]["message"]["content"].strip()
 
 
-def query_openai_fine(user_input, notice_text, other_documents_text):
-    """Call OpenAI API to generate response with content masking."""
+# def query_openai_fine(user_input, notice_text, other_documents_text):
+#     """Call OpenAI API to generate response with content masking."""
     
-    # Initialize settings and masker
-    settings = frappe.get_single("FinBuddy Settings")
-    masker = ContentMasker()
+#     # Initialize settings and masker
+#     settings = frappe.get_single("FinBuddy Settings")
+#     masker = ContentMasker()
     
-    # Combine all text that needs to be masked
-    combined_user_content = f"Notice File Content: {notice_text} \n Additional Documents: {other_documents_text} \n User Input: {user_input}"
+#     # Combine all text that needs to be masked
+#     combined_user_content = f"Notice File Content: {notice_text} \n Additional Documents: {other_documents_text} \n User Input: {user_input}"
     
-    # Mask the content
-    masked_content = masker.mask_content(combined_user_content)
+#     # Mask the content
+#     masked_content = masker.mask_content(combined_user_content)
     
-    # Save mapping to FinBuddy DocType
-    mapping_data = {
-        'mapping': masker.mapping,
-        'reverse_mapping': masker.reverse_mapping,
-        'timestamp': str(datetime.now())
-    }
+#     # Save mapping to FinBuddy DocType
+#     mapping_data = {
+#         'mapping': masker.mapping,
+#         'reverse_mapping': masker.reverse_mapping,
+#         'timestamp': str(datetime.now())
+#     }
     
-    settings.mapping_content = json.dumps(mapping_data)
-    settings.save()
+#     settings.mapping_content = json.dumps(mapping_data)
+#     settings.save()
 
-    # Get OpenAI settings
-    model = settings.model_name or "gpt-3.5-turbo"
-    max_token = settings.max_token or 500
-    temperature = settings.temperature or 0.2
-    frequency_penalty = settings.frequency_penalty or 0.3
-    system_role = settings.system_role or "give clear and structured response."
-    openai.api_key = settings.get_password('openai_key')
+#     # Get OpenAI settings
+#     model = settings.model_name or "gpt-3.5-turbo"
+#     max_token = settings.max_token or 500
+#     temperature = settings.temperature or 0.2
+#     frequency_penalty = settings.frequency_penalty or 0.3
+#     system_role = settings.system_role or "give clear and structured response."
+#     openai.api_key = settings.get_password('openai_key')
 
-    # Make API call with masked content
-    response = openai.ChatCompletion.create(
-        model=model,
-        messages=[
-            {"role": "system", "content": system_role},
-            {"role": "user", "content": masked_content.strip()},
-        ],
-        max_tokens=max_token,
-        temperature=temperature,
-        frequency_penalty=frequency_penalty
-    )
+#     # Make API call with masked content
+#     response = openai.ChatCompletion.create(
+#         model=model,
+#         messages=[
+#             {"role": "system", "content": system_role},
+#             {"role": "user", "content": masked_content.strip()},
+#         ],
+#         max_tokens=max_token,
+#         temperature=temperature,
+#         frequency_penalty=frequency_penalty
+#     )
 
-    # Get the response
-    masked_response = response["choices"][0]["message"]["content"].strip()
+#     # Get the response
+#     masked_response = response["choices"][0]["message"]["content"].strip()
 
-    # Load mapping from FinBuddy DocType
-    stored_mapping = json.loads(settings.mapping_content)
-    masker.mapping = stored_mapping['mapping']
-    masker.reverse_mapping = stored_mapping['reverse_mapping']
+#     # Load mapping from FinBuddy DocType
+#     stored_mapping = json.loads(settings.mapping_content)
+#     masker.mapping = stored_mapping['mapping']
+#     masker.reverse_mapping = stored_mapping['reverse_mapping']
 
-    # Unmask the response
-    unmasked_response = masker.unmask_content(masked_response)
+#     # Unmask the response
+#     unmasked_response = masker.unmask_content(masked_response)
 
-    return unmasked_response
+#     return unmasked_response
 
 
 
@@ -2492,9 +2495,15 @@ def write_content_generation_logs(content, stage_name, doc_name=None, doc_info=N
         print("stage_name", stage_name)
         print("doc_name", doc_name)
         print("doc_info", doc_info)
+        
         if not doc_name:
+            if doc_info.get('doctype_name') in {'Response to Outstanding Demand', 'E Proceeding'}:
+                doc_info['client_type'] = 'Income Tax Client'
+
+
             doc_name = frappe.get_doc({
                 'doctype': "Generate Response Log",
+                'client_type': doc_info['client_type'],
                 'client': doc_info['client_name'],
                 'doctype_name': doc_info['doctype_name'],
                 'doc_name': doc_info['doc_name'],

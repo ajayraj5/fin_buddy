@@ -148,7 +148,7 @@ app_license = "mit"
 # Scheduled Tasks
 # ---------------
 
-scheduler_events = {
+# scheduler_events = {
 # 	"all": [
 # 		"fin_buddy.tasks.all"
 # 	],
@@ -158,16 +158,16 @@ scheduler_events = {
 # 	"hourly": [
 # 		"fin_buddy.tasks.hourly"
 # 	],
-    "hourly": [
-        "fin_buddy.events.gst_gov.cleanup_stale_gst_sessions"
-    ],
+    # "hourly": [
+    #     "fin_buddy.events.gst_gov.cleanup_stale_gst_sessions"
+    # ],
 # 	"weekly": [
 # 		"fin_buddy.tasks.weekly"
 # 	],
 # 	"monthly": [
 # 		"fin_buddy.tasks.monthly"
 # 	],
-}
+# }
 
 # Testing
 # -------
