@@ -23,9 +23,10 @@
   "other_documents",
   "mask_this_data",
   "section_break_gorx",
-  "fetch_response_from_gpt",
-  "column_break_fyot",
   "view_data_before_response_generation",
+  "is_terms_and_conditions_checked",
+  "column_break_fyot",
+  "fetch_response_from_gpt",
   "section_break_nokg",
   "response_message"
  ],
@@ -131,6 +132,7 @@
    "label": "Response Message"
   },
   {
+   "depends_on": "eval: doc.is_terms_and_conditions_checked == 1",
    "fieldname": "fetch_response_from_gpt",
    "fieldtype": "Button",
    "label": "Generate Response"
@@ -139,6 +141,12 @@
    "fieldname": "notice_letter",
    "fieldtype": "Attach",
    "label": "Notice"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_terms_and_conditions_checked",
+   "fieldtype": "Check",
+   "label": "Send your data to AI Model for response generation?"
   }
  ],
  "index_web_pages_for_search": 1,
@@ -148,7 +156,7 @@
    "link_fieldname": "doc_name"
   }
  ],
- "modified": "2025-03-03 16:15:52.441138",
+ "modified": "2025-03-04 13:40:34.197136",
  "modified_by": "Administrator",
  "module": "Fin Buddy",
  "name": "Response to Outstanding Demand",
